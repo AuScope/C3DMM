@@ -37,7 +37,7 @@ public class VocabularyServiceResponseHandler {
         XPath xPath = factory.newXPath();
         xPath.setNamespaceContext(new VocabularyServiceNamespaceContext());
 
-        XPathExpression expr = xPath.compile("/rdf:RDF/skos:Concept");
+        XPathExpression expr = xPath.compile("/rdf:RDF/skos:Concept | /rdf:RDF/rdfs:Resource[./rdf:type[@rdf:resource='http://www.w3.org/2004/02/skos/core#Concept']]");
         NodeList conceptNodes = (NodeList)expr.evaluate(rdfDocument, XPathConstants.NODESET);
         ArrayList<Concept> concepts = new ArrayList<Concept>();
 

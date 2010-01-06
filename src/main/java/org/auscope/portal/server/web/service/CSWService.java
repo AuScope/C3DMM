@@ -13,7 +13,12 @@ import java.util.ArrayList;
 /**
  * Provides some utility methods for accessing data from a CSW service
  *
- * @version $Id$
+ * TODO: create ICSWService interface, as this implementation does things like caching,
+ * TODO: which is not desirable in all cases
+ *
+ * User: Mathew Wyatt
+ * Date: 02/07/2009
+ * Time: 2:33:49 PM
  */
 @Service
 public class CSWService {
@@ -22,7 +27,7 @@ public class CSWService {
     private CSWRecord[] dataRecords = new CSWRecord[0];
     private HttpServiceCaller serviceCaller;
     private String serviceUrl;
-    private CSWThreadExecutor executor;        
+    private CSWThreadExecutor executor;
     private Util util;
     private long lastUpdated = 0;
     private static final int UPDATE_INTERVAL = 300000;
@@ -34,7 +39,8 @@ public class CSWService {
 
         this.executor = executor;
         this.serviceCaller = serviceCaller;
-        this.util = util;        
+        this.util = util;
+
     }
 
     /**
@@ -50,8 +56,7 @@ public class CSWService {
      * @throws Exception
      */
     public void updateRecordsInBackground() throws Exception {
-        // Update the cache if older that 5 mins or there are no records
-        if (System.currentTimeMillis() - lastUpdated > UPDATE_INTERVAL || dataRecords.length == 0) {
+        if(System.currentTimeMillis() - lastUpdated > UPDATE_INTERVAL || dataRecords.length == 0) { //if older that 5 mins or there are no records then do the update
             executor.execute(new Runnable() {
                 public void run() {
                     updateCSWRecords();
@@ -121,9 +126,9 @@ public class CSWService {
      * @throws Exception
      */
     public CSWRecord[] getWFSRecords() throws Exception {
-        CSWRecord[] records = getDataRecords();
+         CSWRecord[] records = getDataRecords();
 
-        ArrayList<CSWRecord> wfsRecords = new ArrayList<CSWRecord>();
+         ArrayList<CSWRecord> wfsRecords = new ArrayList<CSWRecord>();
 
         for(CSWRecord rec : records) {
             if(rec.getOnlineResourceProtocol() != null)
@@ -142,15 +147,12 @@ public class CSWService {
      * @throws Exception
      */
     public CSWRecord[] getWFSRecordsForTypename(String featureTypeName) throws Exception {
-        CSWRecord[] records = getDataRecords();
-        ArrayList<CSWRecord> wfsRecords = new ArrayList<CSWRecord>();
+         CSWRecord[] records = getDataRecords();
+         ArrayList<CSWRecord> wfsRecords = new ArrayList<CSWRecord>();
 
         for(CSWRecord rec : records) {
             if(rec.getOnlineResourceProtocol() != null)
-                if (rec.getOnlineResourceProtocol().contains("WFS") && 
-                    !rec.getServiceUrl().equals("") && 
-                    featureTypeName.equals(rec.getOnlineResourceName())) 
-                {
+                if(rec.getOnlineResourceProtocol().contains("WFS") && !rec.getServiceUrl().equals("") && featureTypeName.equals(rec.getOnlineResourceName())) {
                     wfsRecords.add(rec);
                 }
         }

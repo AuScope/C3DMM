@@ -1,10 +1,9 @@
 package org.auscope.portal.csw;
 
 import org.w3c.dom.Node;
-import javax.xml.xpath.XPathConstants;
-import javax.xml.xpath.XPath;
-import javax.xml.xpath.XPathFactory;
-import javax.xml.xpath.XPathExpressionException;
+import org.w3c.dom.NodeList;
+
+import javax.xml.xpath.*;
 
 /**
  * User: Mathew Wyatt
@@ -20,7 +19,7 @@ public class CSWRecord {
     private String onlineResourceDescription;
     private String onlineResourceProtocol;
     private String contactOrganisation;
-
+    private NodeList keywordNodes;
 
     private String dataIdentificationAbstract;
 
@@ -58,6 +57,9 @@ public class CSWRecord {
         String contactOrganisationExpression = "gmd:contact/gmd:CI_ResponsibleParty/gmd:organisationName/gco:CharacterString";
         tempNode = (Node)xPath.evaluate(contactOrganisationExpression, recordNode, XPathConstants.NODE);
         contactOrganisation = tempNode != null ? tempNode.getTextContent() : "";
+
+        String keywordsExpression = "gmd:identificationInfo/gmd:MD_DataIdentification/gmd:descriptiveKeywords/gmd:MD_Keywords/gmd:keyword/gco:CharacterString";
+        keywordNodes = (NodeList)xPath.evaluate(keywordsExpression, recordNode, XPathConstants.NODESET);
     }
 
     public String getServiceName() throws XPathExpressionException {
@@ -86,5 +88,19 @@ public class CSWRecord {
 
     public String getDataIdentificationAbstract() {
         return dataIdentificationAbstract;
+    }
+
+    //TODO: probably faster to use an xpath query rather than the DOM, ask Pavel
+    public boolean containsKeyword(String keyword) {
+        if(keyword.equals(""))
+            return false;
+
+        for(int i = 0; i < keywordNodes.getLength(); i++) {
+            if(keywordNodes.item(i).getTextContent().contains(keyword)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
