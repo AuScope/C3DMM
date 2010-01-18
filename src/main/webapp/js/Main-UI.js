@@ -372,7 +372,7 @@ Ext.onReady(function() {
     }; */
 
     var dataProductStore = new Ext.data.Store({
-        proxy: new Ext.data.HttpProxy({url: '/getProducts.do'}),
+        proxy: new Ext.data.HttpProxy({url: 'getProducts.do'}),
         reader: new Ext.data.ArrayReader({}, [
             {   name:'title'            },
             {   name:'description'      },
