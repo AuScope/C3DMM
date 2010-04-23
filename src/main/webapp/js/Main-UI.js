@@ -7,7 +7,7 @@ var theglobalexml;
 Ext.onReady(function() {
     var map;
     var formFactory = new FormFactory();
-
+/*
     //-----------Complex Features Panel Configurations
 
     var complexFeaturesStore = new Ext.data.Store({
@@ -78,7 +78,7 @@ Ext.onReady(function() {
             }
         }]
     });
-
+*/
     //----------- WMS Layers Panel Configurations
 
     var wmsLayersStore = new Ext.data.GroupingStore({
@@ -679,10 +679,10 @@ Ext.onReady(function() {
                             values[i] = url;
                         }
                         //alert("downloadProxy?" + url);
-                        openWindowWithPost("downloadWMSAsZip.do?", 'WMS_Layer_Download_'+new Date().getTime(), keys, values);
+//                        openWindowWithPost("downloadWMSAsZip.do?", 'WMS_Layer_Download_'+new Date().getTime(), keys, values);
                     }
 
-                } else if (serviceType == 'wfs') {//if a WFS open a new window calling the download controller
+                }/* else if (serviceType == 'wfs') {//if a WFS open a new window calling the download controller
 
                     if (serviceUrls.length >= 1) {
                         var filterParameters = filterPanel.getLayout().activeItem == filterPanel.getComponent(0) ? "&typeName=" + record.get('typeName') : filterPanel.getLayout().activeItem.getForm().getValues(true);
@@ -695,7 +695,7 @@ Ext.onReady(function() {
 
                         openWindowWithPost("downloadGMLAsZip.do?", 'WFS_Layer_Download_'+new Date().getTime(), keys, values);
                     }
-                }
+                }*/
             }
         }
     });
@@ -735,7 +735,7 @@ Ext.onReady(function() {
 
 
     // basic tabs 1, built from existing content
-    var tabsPanel = new Ext.TabPanel({
+/*    var tabsPanel = new Ext.TabPanel({
         //width:450,
         activeTab: 0,
         region:'north',
@@ -747,7 +747,7 @@ Ext.onReady(function() {
             complexFeaturesPanel,
             wmsLayersPanel
         ]
-    });
+    });*/
 
     /**
      * Used as a placeholder for the tree and details panel on the left of screen
@@ -760,7 +760,7 @@ Ext.onReady(function() {
         //margins: '100 0 0 0',
         margins:'100 0 0 3',
         width: 350,
-        items:[tabsPanel , activeLayersPanel, filterPanel]
+        items:[/*tabsPanel*/wmsLayersPanel , activeLayersPanel, filterPanel]
     };
 
     /**
@@ -850,23 +850,23 @@ Ext.onReady(function() {
         map.checkResize();
     });
     
-    //updateCSWRecords dud gloabal for geoxml class
+    //a dud gloabal for geoxml class
     theglobalexml = new GeoXml("theglobalexml", map, null, null);
 
     //event handlers and listeners
     //tree.on('click', function(node, event) { treeNodeOnClickController(node, event, viewport, filterPanel); });
     //tree.on('checkchange', function(node, isChecked) { treeCheckChangeController(node, isChecked, map, statusBar, viewport, downloadUrls, filterPanel); });
 
-    //when updateCSWRecords person clicks on updateCSWRecords marker then do something
-    GEvent.addListener(map, "click", function(overlay, latlng) {
+    //when a person clicks on a marker then do something
+/*    GEvent.addListener(map, "click", function(overlay, latlng) {
         gMapClickController(map, overlay, latlng, activeLayersStore);
     });
-
-    new Ext.LoadMask(tabsPanel.el, {msg: 'Please Wait...', store: wmsLayersStore});
+*/
+//    new Ext.LoadMask(tabsPanel.el, {msg: 'Please Wait...', store: wmsLayersStore});
     //new Ext.LoadMask(complexFeaturesPanel.el, {msg: 'Please Wait...', store: complexFeaturesStore});
-    //new Ext.LoadMask(wmsLayersPanel.el, {msg: 'Please Wait...', store: wmsLayersStore});
+    new Ext.LoadMask(wmsLayersPanel.el, {msg: 'Please Wait...', store: wmsLayersStore});
 
-    complexFeaturesStore.load();
+//    complexFeaturesStore.load();
     wmsLayersStore.load();
     
 });
