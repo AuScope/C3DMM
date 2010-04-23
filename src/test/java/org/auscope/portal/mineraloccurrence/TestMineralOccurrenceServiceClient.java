@@ -22,7 +22,7 @@ import junit.framework.Assert;
  * Created by IntelliJ IDEA.
  * User: Mathew Wyatt
  * Date: Jun 4, 2009
- * Time: 11:41:09 AM
+ * @version: $Id$
  */
 public class TestMineralOccurrenceServiceClient {
     private MineralOccurrenceService mineralOccurrenceService;
@@ -100,14 +100,12 @@ public class TestMineralOccurrenceServiceClient {
 
     /**
      * Test the event that we dont provide a name or group
-     *
      * @throws Exception
      */
     @Test
     public void testGetCommodityNoNameOrGroup() throws Exception {
         final String serviceURL = "http://localhost?";
         final String commodityName = "";
-        final String commodityGroup = "";
 
         final GetMethod mockMethod = context.mock(GetMethod.class);
         final String mockCommodityResponse = new String();
@@ -120,7 +118,7 @@ public class TestMineralOccurrenceServiceClient {
             oneOf (mineralOccurrencesResponseHandler).getCommodities(mockCommodityResponse); will(returnValue(mockCommodities));
         }});
 
-        Collection<Commodity> commodities = this.mineralOccurrenceService.getCommodity(serviceURL, commodityName, commodityGroup);
+        Collection<Commodity> commodities = this.mineralOccurrenceService.getCommodity(serviceURL, commodityName);
         Assert.assertEquals(mockCommodities, commodities);
     }
 
@@ -132,9 +130,8 @@ public class TestMineralOccurrenceServiceClient {
     public void testGetCommodity() throws Exception {
         final String serviceURL = "http://localhost?";
         final String commodityName = "someName";
-        final String commodityGroup = "";
 
-        final CommodityFilter commodityFilter = new CommodityFilter(commodityGroup, commodityName);
+        final CommodityFilter commodityFilter = new CommodityFilter(commodityName);
         final GetMethod mockMethod = context.mock(GetMethod.class);
         final String mockCommodityResponse = new String();
         final Collection<Commodity> mockCommodities = (Collection<Commodity>)context.mock(Collection.class);
@@ -146,19 +143,18 @@ public class TestMineralOccurrenceServiceClient {
             oneOf (mineralOccurrencesResponseHandler).getCommodities(mockCommodityResponse); will(returnValue(mockCommodities));
         }});
 
-        Collection<Commodity> commodities = this.mineralOccurrenceService.getCommodity(serviceURL, commodityGroup, commodityName);
+        Collection<Commodity> commodities = this.mineralOccurrenceService.getCommodity(serviceURL, commodityName);
         Assert.assertEquals(mockCommodities, commodities);
     }
 
     /**
      * Test for a valid query
      * @throws Exception
-     *
+     */
     @Test
     public void testGetMineralOccurrenceGML() throws Exception {
         final String serviceURL = "http://localhost?";
         final String commodityName = "someName";
-        final String commodityGroup = "";
         final String measureType = "";
         final String minOreAmount = "";
         final String minOreAmountUOM = "";
@@ -167,35 +163,38 @@ public class TestMineralOccurrenceServiceClient {
         final String cutOffGrade = "";
         final String cutOffGradeUOM = "";
 
-        final CommodityFilter commodityFilter = new CommodityFilter(commodityGroup, commodityName);
+        final CommodityFilter commodityFilter = new CommodityFilter(commodityName);
         final GetMethod mockMethod = context.mock(GetMethod.class);
         final String mockCommodityResponse = new String();
         final Commodity mockCommodity = context.mock(Commodity.class);
         final Collection<Commodity> commodities = Arrays.asList(mockCommodity);
-
+           
         context.checking(new Expectations() {{
             //this comes from my instantiation of the MineralOccurrenceFilter
-            oneOf (mockCommodity).getMineralOccurrenceURI(); will(returnValue("dudURI"));
+            oneOf (mockCommodity).getSource(); will(returnValue("dudURI"));
         }});
+        
+        final MineralOccurrenceFilter mineralOccurrenceFilter 
+            = new MineralOccurrenceFilter( commodities,
+                                           measureType,
+                                           minOreAmount,
+                                           minOreAmountUOM,
+                                           minCommodityAmount,
+                                           minCommodityAmountUOM,
+                                           cutOffGrade,
+                                           cutOffGradeUOM );
 
-        final MineralOccurrenceFilter mineralOccurrenceFilter = new MineralOccurrenceFilter(  commodities,
-                                                                                        measureType,
-                                                                                        minOreAmount,
-                                                                                        minOreAmountUOM,
-                                                                                        minCommodityAmount,
-                                                                                        minCommodityAmountUOM,
-                                                                                        cutOffGrade,
-                                                                                        cutOffGradeUOM);
-
-        context.checking(new Expectations() {{
-            //this the get commodities part
+        context.checking(new Expectations() {{           
+           
+            // This is the get commodities part
             oneOf (methodMaker).makeMethod(serviceURL, "er:Commodity", commodityFilter.getFilterString()); will(returnValue(mockMethod));
             oneOf (httpServiceCaller).getHttpClient();will(returnValue(mockHttpClient));
             oneOf (httpServiceCaller).getMethodResponseAsString(mockMethod, mockHttpClient); will(returnValue(mockCommodityResponse));
             oneOf (mineralOccurrencesResponseHandler).getCommodities(mockCommodityResponse); will(returnValue(commodities));
 
-            oneOf (mockCommodity).getMineralOccurrenceURI(); will(returnValue("dudURI"));
-
+            oneOf (mockCommodity).getSource(); will(returnValue("dudURI"));
+            oneOf (mockCommodity).getSource(); will(returnValue("dudURI"));
+            
             //the mineral occurrence query part
             oneOf (methodMaker).makeMethod(serviceURL, "er:MineralOccurrence", mineralOccurrenceFilter.getFilterString()); will(returnValue(mockMethod));
             oneOf (httpServiceCaller).getHttpClient();will(returnValue(mockHttpClient));
@@ -204,7 +203,6 @@ public class TestMineralOccurrenceServiceClient {
 
         this.mineralOccurrenceService.getMineralOccurrenceGML(serviceURL,
                                                               commodityName,
-                                                              commodityGroup,
                                                               measureType,
                                                               minOreAmount,
                                                               minCommodityAmountUOM,
@@ -213,7 +211,7 @@ public class TestMineralOccurrenceServiceClient {
                                                               cutOffGrade,
                                                               cutOffGradeUOM);
     }
-    */
+    
     
     /**
      * Test for the case that we dont get any results, by mimicking the getCommodity query returning no results
@@ -222,7 +220,6 @@ public class TestMineralOccurrenceServiceClient {
     public void testGetMineralOccurrenceGMLNoResults() throws Exception {
         final String serviceURL = "http://localhost?";
         final String commodityName = "someName";
-        final String commodityGroup = "";
         final String measureType = "";
         final String minOreAmount = "";
         final String minOreAmountUOM = "";
@@ -231,7 +228,7 @@ public class TestMineralOccurrenceServiceClient {
         final String cutOffGrade = "";
         final String cutOffGradeUOM = "";
 
-        final CommodityFilter commodityFilter = new CommodityFilter(commodityGroup, commodityName);
+        final CommodityFilter commodityFilter = new CommodityFilter(commodityName);
         final GetMethod mockMethod = context.mock(GetMethod.class);
         final String mockCommodityResponse = new String();
         final Collection<Commodity> commodities = new ArrayList<Commodity>();
@@ -246,7 +243,6 @@ public class TestMineralOccurrenceServiceClient {
 
         String returnValue = this.mineralOccurrenceService.getMineralOccurrenceGML(serviceURL,
                                                                     commodityName,
-                                                                    commodityGroup,
                                                                     measureType,
                                                                     minOreAmount,
                                                                     minCommodityAmountUOM,
@@ -254,8 +250,15 @@ public class TestMineralOccurrenceServiceClient {
                                                                     minCommodityAmountUOM,
                                                                     cutOffGrade,
                                                                     cutOffGradeUOM);
+        
+        final String expectedValue =
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
+            "<wfs:FeatureCollection numberOfFeatures=\"0\"" +
+            "    xsi:schemaLocation=\"http://www.opengis.net/wfs\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns:gml=\"http://www.opengis.net/gml\" xmlns:wfs=\"http://www.opengis.net/wfs\">" +
+            "    <gml:featureMembers/>" +
+            "</wfs:FeatureCollection>";
 
-        Assert.assertEquals("", returnValue);
+        Assert.assertEquals(expectedValue, returnValue);
     }
 
     @Test

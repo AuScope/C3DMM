@@ -4,14 +4,13 @@ package org.auscope.portal.mineraloccurrence;
  * User: Michael Stegherr
  * Date: 23/03/2009
  * Time: 1:59:02 PM
+ * @version $Id$
  */
 public class CommodityFilter implements IFilter {
-    private String commodityGroup;
+
     private String commodityName;
 
-    public CommodityFilter(String commodityGroup,
-                           String commodityName) {
-        this.commodityGroup = commodityGroup;
+    public CommodityFilter(String commodityName) {
         this.commodityName  = commodityName;
     }
 
@@ -68,32 +67,30 @@ public class CommodityFilter implements IFilter {
 
     }*/
 
+    
+    /**
+     * Build the query string based on given properties
+     * @return String for sending in a POST request
+     */
     public String getFilterString() {
         StringBuffer queryString = new StringBuffer();
 
-        queryString.append("<ogc:Filter \n" +
-                "                xmlns:er=\"urn:cgi:xmlns:GGIC:EarthResource:1.1\"\n" +
-                "                xmlns:wfs=\"http://www.opengis.net/wfs\"\n" +
-                "                xmlns:ogc=\"http://www.opengis.net/ogc\" " +
-                "                xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">\n");
+        queryString.append("<ogc:Filter xmlns:er=\"urn:cgi:xmlns:GGIC:EarthResource:1.1\"\n" +
+                           "            xmlns:wfs=\"http://www.opengis.net/wfs\"\n" +
+                           "            xmlns:ogc=\"http://www.opengis.net/ogc\"\n" +
+                           "            xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">\n");
 
         if(checkMany())
-            queryString.append("<ogc:And>");
-
-        if(!this.commodityGroup.equals(""))
-            queryString.append("<ogc:PropertyIsEqualTo>\n" +
-                    "                   <ogc:PropertyName>er:commodityGroup</ogc:PropertyName>\n" +
-                    "                   <ogc:Literal>"+this.commodityGroup+"</ogc:Literal>\n" +
-                    "           </ogc:PropertyIsEqualTo>");
+            queryString.append("    <ogc:And>\n");
 
         if(!this.commodityName.equals(""))
-            queryString.append("<ogc:PropertyIsEqualTo>\n" +
-                    "                   <ogc:PropertyName>er:commodityName</ogc:PropertyName>\n" +
-                    "                   <ogc:Literal>"+this.commodityName+"</ogc:Literal>\n" +
-                    "           </ogc:PropertyIsEqualTo>");
+            queryString.append("    <ogc:PropertyIsEqualTo>\n" +
+                               "        <ogc:PropertyName>er:commodityName</ogc:PropertyName>\n" +
+                               "        <ogc:Literal>"+this.commodityName+"</ogc:Literal>\n" +
+                               "    </ogc:PropertyIsEqualTo>");
 
         if(checkMany())
-            queryString.append("</ogc:And>");
+            queryString.append("    </ogc:And>\n");
 
         queryString.append("</ogc:Filter>\n");
 
@@ -102,14 +99,12 @@ public class CommodityFilter implements IFilter {
     
 
     /**
-     * Do more than one query parameter have a value
-     * @return
+     * Checks if more than one query parameter have a value.
+     * @return true, if more than one parameter is found
      */
     private boolean checkMany() {
         int howManyHaveaValue = 0;
 
-        if(!this.commodityGroup.equals(""))
-            howManyHaveaValue++;
         if(!this.commodityName.equals(""))
             howManyHaveaValue++;
 
