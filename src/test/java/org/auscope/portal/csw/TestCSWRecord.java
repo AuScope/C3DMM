@@ -55,4 +55,23 @@ public class TestCSWRecord {
                 this.records[7].getServiceUrl());
     }
 
+    @Test
+    public void testContainsKeyword() {
+    	
+    	Assert.assertEquals(
+    			"record 0 contains keyword: GeologicUnit",
+    			true,
+    			this.records[0].containsKeyword("GeologicUnit"));
+    	
+    	Assert.assertEquals(
+    			"record 0 doesn't contain keyword: blabla",
+    			false,
+    			this.records[0].containsKeyword("blabla"));
+    	
+    	Assert.assertEquals(
+    			"record 24 contains keyword: EarthResourceML",
+    			true,
+    			this.records[24].containsKeyword("EarthResourceML"));
+    }
+    
 }
