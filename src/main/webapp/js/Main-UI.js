@@ -97,7 +97,7 @@ Ext.onReady(function() {
             {   name: 'dataSourceImage' },
             {   name: 'opacity'         }
         ]),
-        groupField:'contactOrg',
+//        groupField:'contactOrg',
         sortInfo: {field:'title', direction:'ASC'}
     });
 
@@ -108,16 +108,16 @@ Ext.onReady(function() {
     var wmsLayersPanel = new Ext.grid.GridPanel({
         stripeRows       : true,
         autoExpandColumn : 'title',
-        plugins          : [ wmsLayersRowExpander ],
+//        plugins          : [ wmsLayersRowExpander ],
         viewConfig       : {scrollOffset: 0, forceFit:true},
-        title            : 'Map Layers',
+        title            : 'Available Data Products',
         region           :'north',
         split            : true,
-        height           : 160,
+        height           : 200,
         autoScroll       : true,
         store            : wmsLayersStore,
         columns: [
-            wmsLayersRowExpander,
+//            wmsLayersRowExpander,
             {
                 id:'title',
                 header: "Title",
@@ -487,7 +487,7 @@ Ext.onReady(function() {
 
     this.activeLayersPanel = new Ext.grid.GridPanel({
         plugins: [activeLayersPanelCheckColumn, 
-                  activeLayersPanelExpander,
+//                  activeLayersPanelExpander,
                   activeLayersRowDragPlugin],
 
         stripeRows: true,
@@ -502,7 +502,7 @@ Ext.onReady(function() {
         store: activeLayersStore,
         layout: 'fit',
         columns: [
-            activeLayersPanelExpander,
+/*            activeLayersPanelExpander,
             {
                 id:'iconImgSrc',
                 header: "",
@@ -510,7 +510,7 @@ Ext.onReady(function() {
                 sortable: false,
                 dataIndex: 'iconImgSrc',
                 align: 'center'
-            },
+            },*/
             {
                 id:'loadingStatus',
                 header: "",
@@ -526,7 +526,7 @@ Ext.onReady(function() {
                 sortable: true,
                 dataIndex: 'title'
             },
-            activeLayersPanelCheckColumn,
+            activeLayersPanelCheckColumn/*,
             {
                 id:'dataSourceImage',
                 header: "",
@@ -534,7 +534,7 @@ Ext.onReady(function() {
                 sortable: false,
                 dataIndex: 'dataSourceImage',
                 align: 'center'
-            }
+            }*/
         ],
         bbar: [
             activeLayersRemoveButton

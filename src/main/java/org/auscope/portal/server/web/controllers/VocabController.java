@@ -18,8 +18,10 @@ import org.apache.commons.httpclient.methods.GetMethod;
 
 import org.apache.log4j.Logger;
 
+import org.auscope.portal.csw.CSWRecord;
 import org.auscope.portal.csw.ICSWMethodMaker;
 import org.auscope.portal.server.util.PortalPropertyPlaceholderConfigurer;
+import org.auscope.portal.server.web.service.CSWService;
 import org.auscope.portal.server.web.service.HttpServiceCaller;
 import org.auscope.portal.server.web.view.JSONModelAndView;
 import org.auscope.portal.vocabs.Concept;
@@ -52,6 +54,7 @@ public class VocabController {
     private HttpServiceCaller httpServiceCaller;
     private VocabularyServiceResponseHandler vocabularyServiceResponseHandler;
     private PortalPropertyPlaceholderConfigurer portalPropertyPlaceholderConfigurer;
+    private CSWService cswService;
     
 
     public static void main(String[] args) throws Exception {
@@ -71,16 +74,26 @@ public class VocabController {
     @Autowired
     public VocabController(HttpServiceCaller httpServiceCaller,
                            VocabularyServiceResponseHandler vocabularyServiceResponseHandler,
-                           PortalPropertyPlaceholderConfigurer portalPropertyPlaceholderConfigurer) {
+                           PortalPropertyPlaceholderConfigurer portalPropertyPlaceholderConfigurer,
+                           CSWService cswService) {
 
         this.httpServiceCaller = httpServiceCaller;
         this.vocabularyServiceResponseHandler = vocabularyServiceResponseHandler;
+        this.cswService = cswService;
         
-
+        
         String vocabServiceUrl = portalPropertyPlaceholderConfigurer.resolvePlaceholder("HOST.vocabService.url");
         logger.debug("vocab service URL: " + vocabServiceUrl);
 
-        this.method = new GetMethod(vocabServiceUrl);
+        this.method = new GetMethod(vocabServiceUrl + "?repository=3DMM&label=*");
+
+        try {
+            this.cswService.updateRecordsInBackground();
+        } catch (Exception e) {
+            logger.error(e);
+        }
+        
+/*        this.method = new GetMethod(vocabServiceUrl);
 
         //set all of the parameters
         NameValuePair repo     = new NameValuePair("repository", "commodity_vocab");
@@ -89,8 +102,63 @@ public class VocabController {
         NameValuePair property = new NameValuePair("property2", "<urn:cgi:classifierScheme:GA:commodity>");
         
         //attach them to the method
-        this.method.setQueryString(new NameValuePair[]{repo, property});
+        this.method.setQueryString(new NameValuePair[]{repo, property});*/
         this.portalPropertyPlaceholderConfigurer = portalPropertyPlaceholderConfigurer;
+    }
+    
+    //TODO: optimise this function, loops in loops can't be optimal
+    @RequestMapping("/getProducts.do")
+    public ModelAndView getProducts() throws Exception {
+        //update the records if need be
+        cswService.updateRecordsInBackground();
+
+        //query the vocab service
+        String vocabResponse = new HttpServiceCaller().getMethodResponseAsString(method, new HttpClient());
+
+        //extract the concepts from the response
+        List<Concept> concepts = new VocabularyServiceResponseHandler().getConcepts(vocabResponse);
+
+        //get WMS layers from the CSW service
+        CSWRecord[] cswRecords = cswService.getWMSRecords();
+
+        //the main holder for the items
+        JSONArray dataItems = new JSONArray();
+
+        for(Concept concept : concepts) {
+            //Add the mineral occurrence
+            JSONArray tableRow = new JSONArray();
+
+            //title
+            tableRow.add(concept.getPreferredLabel());
+
+            //description
+            tableRow.add(concept.getScopeNotes());
+
+            //an array for the layer names
+            JSONArray layerNames = new JSONArray();
+
+            //an array for the service urls
+            JSONArray serviceUrls = new JSONArray();
+
+            //find the urls and layer names from the csw service which were tagged with the given product name
+            for(CSWRecord cswRecord : cswRecords) {
+                if(cswRecord.containsKeyword(concept.getConceptUrn())) {
+                    layerNames.add(cswRecord.getOnlineResourceName());
+                    serviceUrls.add(cswRecord.getServiceUrl());
+                }
+            }
+
+            //the layer names
+            tableRow.add(layerNames);
+
+            //urls for the services containing this type of product
+            tableRow.add(serviceUrls);
+
+            //add to the list
+            dataItems.add(tableRow);
+        }
+
+        return new JSONModelAndView(dataItems);
     }
     
     /**
@@ -103,7 +171,7 @@ public class VocabController {
      * @param label
      * @return
      */
-    @RequestMapping("/getScalar.do")
+/*    @RequestMapping("/getScalar.do")
     public ModelAndView getScalarQuery(@RequestParam("repository") final String repository,
     								 @RequestParam("label") final String label) throws Exception {
     	String response = ""; 
@@ -159,14 +227,14 @@ public class VocabController {
         }};
         
         return new JSONModelAndView(map);
-    }
+    }*/
 
     /**
      * Get all GA commodity URNs with prefLabels
      * 
      * @param
      */
-    @RequestMapping("/getCommodities.do")
+/*    @RequestMapping("/getCommodities.do")
     public ModelAndView getCommodities() throws Exception {
 
         logger.debug("vocab service query: " + this.method.getQueryString());
@@ -195,7 +263,7 @@ public class VocabController {
         }
 
         return new JSONModelAndView(dataItems);
-    }
+    }*/
     
     
     /**
@@ -203,7 +271,7 @@ public class VocabController {
      * 
      * @param
      */        
-    @RequestMapping("/getAllCommodities.do")
+/*    @RequestMapping("/getAllCommodities.do")
     public ModelAndView getAllCommodities() throws Exception {
 
         String response = ""; 
@@ -259,5 +327,5 @@ public class VocabController {
         
             return new JSONModelAndView(dataItems);
         }
-    }    
+    }*/
 }

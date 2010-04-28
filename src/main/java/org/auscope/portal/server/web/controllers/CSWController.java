@@ -157,32 +157,36 @@ public class CSWController {
 
         CSWRecord[] records = cswService.getWMSRecords();
 
+        logger.debug("Number of layers retrieved: " + records.length);
+        
         for(CSWRecord record : records) {
-            //Add the mineral occurrence
             JSONArray tableRow = new JSONArray();
 
             //add the name of the layer/feature type
             tableRow.add(record.getServiceName());
 
-            //add the abstract text to be shown as updateCSWRecords description
+            //add the abstract text to be shown as a description
             tableRow.add(record.getDataIdentificationAbstract());
             
-            //Add the contact organisation
+            //add the contact organisation
             String org = record.getContactOrganisation();
-            if (org == null || org.length() == 0)
-            	org = "Unknown";
+
+            //skip if not C3DMM
+            if (org.compareTo("C3DMM") != 0)
+            	continue;
+            
             tableRow.add(org);
 
-            //wms dont need updateCSWRecords proxy url
+            //wms dont need a proxy url
             tableRow.add("");
 
             //add the type: wfs or wms
             tableRow.add("wms");
 
-            //TODO: add updateCSWRecords proper unique id
+            //TODO: add a proper unique id
             tableRow.add(record.hashCode());
 
-            //add the featureType name (in case of updateCSWRecords WMS feature)
+            //add the featureType name (in case of a WMS feature)
             tableRow.add(record.getOnlineResourceName());
 
             JSONArray serviceURLs = new JSONArray();
@@ -200,7 +204,11 @@ public class CSWController {
 
             dataItems.add(tableRow);
         }
-        logger.debug(dataItems.toString());
+
+        for(int i=0; i<dataItems.size(); i++ ) {
+            logger.debug("layer " + (i+1) + " : " + dataItems.get(i).toString());            
+        }
+        
         return new JSONModelAndView(dataItems);
     }
 }
