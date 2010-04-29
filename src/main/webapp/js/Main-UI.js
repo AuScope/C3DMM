@@ -102,7 +102,7 @@ Ext.onReady(function() {
     });
 
     var wmsLayersRowExpander = new Ext.grid.RowExpander({
-        tpl : new Ext.Template('<p>{description}</p><br>')
+        tpl : new Ext.Template('<p>{typeName}</p><br>')
     });
 
     var dataProductsStore = new Ext.data.Store({
@@ -127,7 +127,7 @@ Ext.onReady(function() {
     var dataProductsPanel = new Ext.grid.GridPanel({
         stripeRows       : true,
         autoExpandColumn : 'title',
-//        plugins          : [ wmsLayersRowExpander ],
+        plugins          : [ wmsLayersRowExpander ],
         viewConfig       : {scrollOffset: 0, forceFit:true},
         title            : 'Available Data Products',
         region           :'north',
@@ -136,7 +136,7 @@ Ext.onReady(function() {
         autoScroll       : true,
         store            : dataProductsStore/*wmsLayersStore*/,
         columns: [
-//            wmsLayersRowExpander,
+            wmsLayersRowExpander,
             {
                 id:'title',
                 header: "Title",
