@@ -132,7 +132,7 @@ Ext.onReady(function() {
         title            : 'Available Data Products',
         region           :'north',
         split            : true,
-        height           : 200,
+        height           : 420,
         autoScroll       : true,
         store            : dataProductsStore/*wmsLayersStore*/,
         columns: [
@@ -181,7 +181,7 @@ Ext.onReady(function() {
     });
 
     var filterButton = new Ext.Button({
-        text     :'Apply Filter >>',
+//        text     :'Apply Filter >>',
         tooltip  :'Apply Filter',
         disabled : true,
         handler  : function() {
@@ -194,19 +194,19 @@ Ext.onReady(function() {
      * Used to show extra details for querying services
      */
     var filterPanel = new Ext.Panel({
-        title: "Filter Properties",
+        title: "Options",
         region: 'south',
         split: true,
         layout: 'card',
         activeItem: 0,
-        height: 200,
+        height: 140,
         autoScroll  : true,
         layoutConfig: {
             layoutOnCardChange: true// Important when not specifying an items array
         },
         items: [
             {
-                html: '<p style="margin:15px;padding:15px;border:1px dotted #999;color:#555;background: #f9f9f9;"> Filter options will be shown here for special services.</p>'
+                html: '<p style="margin:15px;padding:15px;border:1px dotted #999;color:#555;background: #f9f9f9;"> Options for active layers will be shown here.</p>'
             }
         ],
         bbar: ['->', filterButton]
