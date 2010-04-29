@@ -135,8 +135,7 @@ public class VocabController {
             tableRow.add(concept.getPreferredLabel());
 
             //description
-//            tableRow.add(concept.getScopeNotes());
-            tableRow.add("");
+            tableRow.add(concept.getScopeNotes());
 
             //add the contact organisation
             /*String org = record.getContactOrganisation();

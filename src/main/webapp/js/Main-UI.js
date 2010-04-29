@@ -102,7 +102,7 @@ Ext.onReady(function() {
     });
 
     var wmsLayersRowExpander = new Ext.grid.RowExpander({
-        tpl : new Ext.Template('<p>{typeName}</p><br>')
+        tpl : new Ext.Template('<p>{description}</p><br>')
     });
 
     var dataProductsStore = new Ext.data.Store({
@@ -455,7 +455,7 @@ Ext.onReady(function() {
     });
 
     var activeLayersPanelExpander = new Ext.grid.RowExpander({
-        tpl : new Ext.Template('<p>{description}</p><br>')
+        tpl : new Ext.Template('<p>{typeName}</p><br>')
     });
 
     var activeLayersRemoveButton = {
@@ -506,7 +506,7 @@ Ext.onReady(function() {
 
     this.activeLayersPanel = new Ext.grid.GridPanel({
         plugins: [activeLayersPanelCheckColumn, 
-//                  activeLayersPanelExpander,
+                  activeLayersPanelExpander,
                   activeLayersRowDragPlugin],
 
         stripeRows: true,
@@ -521,8 +521,8 @@ Ext.onReady(function() {
         store: activeLayersStore,
         layout: 'fit',
         columns: [
-/*            activeLayersPanelExpander,
-            {
+            activeLayersPanelExpander,
+/*            {
                 id:'iconImgSrc',
                 header: "",
                 width: 18,
