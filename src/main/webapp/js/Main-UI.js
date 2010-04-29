@@ -105,7 +105,26 @@ Ext.onReady(function() {
         tpl : new Ext.Template('<p>{description}</p><br>')
     });
 
-    var wmsLayersPanel = new Ext.grid.GridPanel({
+    var dataProductsStore = new Ext.data.Store({
+        proxy: new Ext.data.HttpProxy({url: '/getProducts.do'}),
+        reader: new Ext.data.ArrayReader({}, [
+		    {   name: 'title'           },
+		    {   name: 'description'     },
+		    {   name: 'contactOrg'      },
+		    {   name: 'proxyURL'        },
+		    {   name: 'serviceType'     },
+		    {   name: 'id'              },
+		    {   name: 'typeName'        },
+		    {   name: 'serviceURLs'     },
+		    {   name: 'layerVisible'    },
+		    {   name: 'loadingStatus'   },
+		    {   name: 'dataSourceImage' },
+		    {   name: 'opacity'         }
+        ]),
+        sortInfo: {field:'title', direction:'ASC'}
+    });
+
+    var dataProductsPanel = new Ext.grid.GridPanel({
         stripeRows       : true,
         autoExpandColumn : 'title',
 //        plugins          : [ wmsLayersRowExpander ],
@@ -115,7 +134,7 @@ Ext.onReady(function() {
         split            : true,
         height           : 200,
         autoScroll       : true,
-        store            : wmsLayersStore,
+        store            : dataProductsStore/*wmsLayersStore*/,
         columns: [
 //            wmsLayersRowExpander,
             {
@@ -138,7 +157,7 @@ Ext.onReady(function() {
             iconCls:'add',
             pressed:true,
             handler: function() {
-                var recordToAdd = wmsLayersPanel.getSelectionModel().getSelected();
+                var recordToAdd = dataProductsPanel.getSelectionModel().getSelected();
 
                 //Only add if the record isn't already there
                 if (activeLayersStore.findExact("id",recordToAdd.get("id")) < 0) {                
@@ -146,19 +165,19 @@ Ext.onReady(function() {
                     activeLayersStore.insert(0, [recordToAdd]);
                     
                     //invoke this layer as being checked
-                    activeLayerCheckHandler(wmsLayersPanel.getSelectionModel().getSelected(), true);
+                    activeLayerCheckHandler(dataProductsPanel.getSelectionModel().getSelected(), true);
                 }
 
                 //set this record to selected
                 activeLayersPanel.getSelectionModel().selectRecords([recordToAdd], false);
             }
-        }],
-        
+        }]/*,
+
         view: new Ext.grid.GroupingView({
             forceFit:true,
             groupTextTpl: '{text} ({[values.rs.length]} {[values.rs.length > 1 ? "Items" : "Item"]})'
         })
-
+*/
     });
 
     var filterButton = new Ext.Button({
@@ -296,9 +315,9 @@ Ext.onReady(function() {
             filterButton.disable();
         }
     };
-
+/*
     var wfsHandler = function(selectedRecord) {
-        //if there is already updateCSWRecords filter running for this record then don't call another
+        //if there is already a filter running for this record then don't call another
         if (selectedRecord.get('loadingStatus') == '<img src="js/external/extjs/resources/images/default/grid/loading.gif">') {
             Ext.MessageBox.show({
                 title: 'Please wait',
@@ -382,7 +401,7 @@ Ext.onReady(function() {
             finishedLoadingHandler();
         });
     };
-
+*/
     var wmsHandler = function(record) {
         var tileLayer = new GWMSTileLayer(map, new GCopyrightCollection(""), 1, 17);
         tileLayer.baseURL = record.get('serviceURLs')[0];
@@ -391,8 +410,8 @@ Ext.onReady(function() {
         tileLayer.opacity = record.get('opacity');
 
         //TODO: remove code specific to feature types and styles specific to GSV
-        if (record.get('typeName') == 'gsmlGeologicUnit')
-            tileLayer.styles = 'ColorByLithology';
+/*        if (record.get('typeName') == 'gsmlGeologicUnit')
+            tileLayer.styles = 'ColorByLithology';*/
         //if (record.get('id') == '7')
         //    tileLayer.styles = '7';
 
@@ -510,7 +529,7 @@ Ext.onReady(function() {
                 sortable: false,
                 dataIndex: 'iconImgSrc',
                 align: 'center'
-            },*/
+            },
             {
                 id:'loadingStatus',
                 header: "",
@@ -518,7 +537,7 @@ Ext.onReady(function() {
                 sortable: false,
                 dataIndex: 'loadingStatus',
                 align: 'center'
-            },
+            },*/
             {
                 id:'title',
                 header: "Title",
@@ -699,7 +718,7 @@ Ext.onReady(function() {
             }
         }
     });
-
+/*
     this.activeLayersPanel.on('cellcontextmenu', function(grid, rowIndex, colIndex, event) {
         //Stop the event propogating
         event.stopEvent();
@@ -714,7 +733,7 @@ Ext.onReady(function() {
         //Show the menu
         contextMenu.showAt(event.getXY());
     });
-    
+*/    
     /**
      * Opens a new window to the specified URL and passes URL parameters like so keys[x]=values[x]
      *
@@ -760,7 +779,7 @@ Ext.onReady(function() {
         //margins: '100 0 0 0',
         margins:'100 0 0 3',
         width: 350,
-        items:[/*tabsPanel*/wmsLayersPanel , activeLayersPanel, filterPanel]
+        items:[/*tabsPanel*/dataProductsPanel , activeLayersPanel, filterPanel]
     };
 
     /**
@@ -864,9 +883,10 @@ Ext.onReady(function() {
 */
 //    new Ext.LoadMask(tabsPanel.el, {msg: 'Please Wait...', store: wmsLayersStore});
     //new Ext.LoadMask(complexFeaturesPanel.el, {msg: 'Please Wait...', store: complexFeaturesStore});
-    new Ext.LoadMask(wmsLayersPanel.el, {msg: 'Please Wait...', store: wmsLayersStore});
+    new Ext.LoadMask(dataProductsPanel.el, {msg: 'Please Wait...', store: /*wmsLayersStore*/dataProductsStore});
 
 //    complexFeaturesStore.load();
-    wmsLayersStore.load();
+//    wmsLayersStore.load();
+    dataProductsStore.load();
     
 });

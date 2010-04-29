@@ -154,7 +154,7 @@ public class VocabController {
             tableRow.add("wms");
 
             //TODO: add a proper unique id
-            tableRow.add("");
+            tableRow.add(concept.hashCode());
             
             //an array for the layer names
             JSONArray layerNames = new JSONArray();
