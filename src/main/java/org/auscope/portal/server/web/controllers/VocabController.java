@@ -118,22 +118,44 @@ public class VocabController {
         //extract the concepts from the response
         List<Concept> concepts = new VocabularyServiceResponseHandler().getConcepts(vocabResponse);
 
+        logger.debug("Number of data products retrieved: " + concepts.size());
+
         //get WMS layers from the CSW service
-        CSWRecord[] cswRecords = cswService.getWMSRecords();
+        CSWRecord[] cswRecords = cswService.getWMSRecordsOfOrg("C3DMM");
+
+        logger.debug("Number of WMS layers retrieved: " + cswRecords.length);
 
         //the main holder for the items
         JSONArray dataItems = new JSONArray();
 
         for(Concept concept : concepts) {
-            //Add the mineral occurrence
             JSONArray tableRow = new JSONArray();
 
             //title
             tableRow.add(concept.getPreferredLabel());
 
             //description
-            tableRow.add(concept.getScopeNotes());
+//            tableRow.add(concept.getScopeNotes());
+            tableRow.add("");
 
+            //add the contact organisation
+            /*String org = record.getContactOrganisation();
+
+            //skip if not C3DMM
+            if (org.compareTo("C3DMM") != 0)
+            	continue;
+*/            
+            tableRow.add("");
+
+            //wms dont need a proxy url
+            tableRow.add("");
+
+            //add the type: wfs or wms
+            tableRow.add("wms");
+
+            //TODO: add a proper unique id
+            tableRow.add("");
+            
             //an array for the layer names
             JSONArray layerNames = new JSONArray();
 
@@ -153,6 +175,13 @@ public class VocabController {
 
             //urls for the services containing this type of product
             tableRow.add(serviceUrls);
+
+            tableRow.element(true);
+            tableRow.add("<img src='js/external/extjs/resources/images/default/grid/done.gif'>");
+
+            tableRow.add("<a href='http://portal.auscope.org' id='mylink' target='_blank'><img src='img/picture_link.png'></a>");
+            
+            tableRow.add("1.0");
 
             //add to the list
             dataItems.add(tableRow);
