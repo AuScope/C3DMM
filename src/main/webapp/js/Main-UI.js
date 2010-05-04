@@ -132,7 +132,7 @@ Ext.onReady(function() {
         title            : 'Available Data Products',
         region           :'north',
         split            : true,
-        height           : 420,
+        height           : 200,
         autoScroll       : true,
         store            : dataProductsStore/*wmsLayersStore*/,
         columns: [
@@ -591,7 +591,7 @@ Ext.onReady(function() {
             var record = activeLayersPanel.getStore().getAt(theRow.rowIndex);
 
             //this is the status icon column
-            if (col.cellIndex == '2') {
+/*            if (col.cellIndex == '2') {
                 var html = 'No status has been recorded.';
 
                 if (record.responseTooltip != null)
@@ -611,7 +611,7 @@ Ext.onReady(function() {
             }
             //this is the column for download link icons
             else if (col.cellIndex == '5') {
-                var serviceType = record.get('serviceType');
+                var serviceType = record.get('serviceType');*/
                 //var html = 'Download layer data.';
 
                 /*if (serviceType == 'wms') { //if a WMS
@@ -619,7 +619,7 @@ Ext.onReady(function() {
                 } else if (serviceType == 'wfs') {//if a WFS
                     html = 'Click here to view this layers GML in new browser window.';
                 }*/
-
+/*
                 activeLayersToolTip = new Ext.ToolTip({
                     target: e.target ,
                     //title: 'Status Information',
@@ -631,7 +631,7 @@ Ext.onReady(function() {
                     autoHeight:true,
                     autoWidth: true
                 });
-            }
+            }*/
         }
     });
 
