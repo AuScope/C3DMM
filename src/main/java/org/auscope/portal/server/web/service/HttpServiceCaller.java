@@ -11,6 +11,7 @@ import org.springframework.stereotype.Repository;
 import java.net.*;
 import java.io.BufferedReader;
 import java.io.BufferedInputStream;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.IOException;
 
@@ -44,6 +45,20 @@ public class HttpServiceCaller {
 
         //return it
         return response;
+    }
+
+    /**
+     * Invokes a method and returns the binary response as a stream
+     * 
+     * WARNING - ensure you call method.releaseConnection() AFTER you have finished reading the input stream
+     *
+     * @return
+     */
+    public InputStream getMethodResponseAsStream(HttpMethodBase method, HttpClient httpClient) throws Exception {
+        //invoke the method
+        this.invokeTheMethod(method, httpClient);
+
+        return method.getResponseBodyAsStream();
     }
 
     /**

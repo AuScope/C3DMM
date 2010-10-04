@@ -127,6 +127,26 @@ public class CSWService {
     }
 
     /**
+     * Returns only WCS data records
+     * @return
+     * @throws Exception
+     */
+    public CSWRecord[] getWCSRecords() throws Exception {
+        CSWRecord[] records = getDataRecords();
+
+         ArrayList<CSWRecord> wcsRecords = new ArrayList<CSWRecord>();
+
+        for(CSWRecord rec : records) {
+            if(rec.getOnlineResourceProtocol() != null)
+                if(rec.getOnlineResourceProtocol().contains("WCS") && !rec.getServiceUrl().equals("")) {
+                    wcsRecords.add(rec);
+                }
+        }
+
+        return wcsRecords.toArray(new CSWRecord[wcsRecords.size()]);
+    }
+
+    /**
      * Returns only WMS data records of a given organization
      * @return
      * @throws Exception

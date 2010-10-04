@@ -22,7 +22,8 @@ public class CSWRecord {
     private String onlineResourceProtocol;
     private String contactOrganisation;
     private NodeList keywordNodes;
-
+    private CSWGeographicElement cswGeographicElement;
+    
     
     private String dataIdentificationAbstract;
 
@@ -61,6 +62,15 @@ public class CSWRecord {
 
         String keywordsExpression = "gmd:identificationInfo/gmd:MD_DataIdentification/gmd:descriptiveKeywords/gmd:MD_Keywords/gmd:keyword/gco:CharacterString";
         keywordNodes = (NodeList)xPath.evaluate(keywordsExpression, node, XPathConstants.NODESET);
+        
+        //Parse our bounding box (if it exists). If it's unparsable, don't worry and just continue
+        String bboxExpression = "gmd:identificationInfo/gmd:MD_DataIdentification/gmd:extent/gmd:EX_Extent/gmd:geographicElement/gmd:EX_GeographicBoundingBox";
+        tempNode = (Node)xPath.evaluate(bboxExpression, node, XPathConstants.NODE);
+        if (tempNode != null) {
+            try {
+                cswGeographicElement = CSWGeographicBoundingBox.fromGeographicBoundingBoxNode(tempNode, xPath);
+            } catch (Exception ex) { }
+        }
     }
 
     public String getServiceName() throws XPathExpressionException {
@@ -108,6 +118,14 @@ public class CSWRecord {
         }
 
         return false;
+    }
+    
+    /**
+     * gets the  CSWGeographicElement that bounds this record (or null if it DNE)
+     * @return
+     */
+    public CSWGeographicElement getCSWGeographicElement() {
+        return cswGeographicElement;
     }
     
     public String toString() {
