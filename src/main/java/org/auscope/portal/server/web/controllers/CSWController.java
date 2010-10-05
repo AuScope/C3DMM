@@ -262,25 +262,25 @@ public class CSWController {
                 tableRow.add(record.hashCode());
     
                 //add the featureType name (in case of updateCSWRecords WMS feature)
-                tableRow.add(record.getOnlineResourceName()/*wcsResource.getName()*/);
+                tableRow.add(record.getOnlineResourceName());//wcsResource.getName());
     
                 JSONArray serviceURLs = new JSONArray();
-                serviceURLs.add(record.getServiceUrl()/*wcsResource.getLinkage().toString()*/);
+                serviceURLs.add(record.getServiceUrl());//wcsResource.getLinkage().toString());
                 tableRow.add(serviceURLs);
                 
                 //This is currently a hack so we can piggy back open DAP onto WCS
                 JSONArray openDapURLs = new JSONArray();
-/*                for (CSWOnlineResource openDapResource : record.getOnlineResourcesByType(OnlineResourceType.OpenDAP)) {
-                    openDapURLs.add(jsonSerializeCSWOnlineResource(openDapResource));
-                }*/
-                tableRow.add(""/*openDapURLs*/);
+//                for (CSWOnlineResource openDapResource : record.getOnlineResourcesByType(OnlineResourceType.OpenDAP)) {
+//                    openDapURLs.add(jsonSerializeCSWOnlineResource(openDapResource));
+//                }
+                tableRow.add(openDapURLs);
                 
                 //There may be a WMS associated with this WCS
                 JSONArray wmsURLs = new JSONArray();
-/*                for (CSWOnlineResource wmsResource : record.getOnlineResourcesByType(OnlineResourceType.WMS)) {
-                        wmsURLs.add(jsonSerializeCSWOnlineResource(wmsResource));
-                }*/
-                tableRow.add(""/*wmsURLs*/);
+//                for (CSWOnlineResource wmsResource : record.getOnlineResourcesByType(OnlineResourceType.WMS)) {
+//                        wmsURLs.add(jsonSerializeCSWOnlineResource(wmsResource));
+//                }
+                tableRow.add(wmsURLs);
                 
                 tableRow.add(1.0);
     
@@ -294,7 +294,7 @@ public class CSWController {
                     bboxes.add(record.getCSWGeographicElement());
                 
                 tableRow.add(bboxes);
-    
+
                 dataItems.add(tableRow);
   //          }
         }
