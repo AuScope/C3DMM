@@ -7,6 +7,19 @@ var theglobalexml;
 Ext.onReady(function() {
     var map;
     var formFactory = new FormFactory();
+
+    //Converts an array of BBox records into an actual BBox object array
+    var convertBboxList = function(v, record) {
+        for (var i = 0; i < v.length; i++) {
+            v[i] = new BBox(v[i].northBoundLatitude,
+                        v[i].southBoundLatitude,
+                        v[i].eastBoundLongitude,
+                        v[i].westBoundLongitude);
+        }
+            
+        return v;
+    };    
+    
 /*
     //-----------Complex Features Panel Configurations
 
@@ -105,6 +118,123 @@ Ext.onReady(function() {
         tpl : new Ext.Template('<p>{description}</p><br>')
     });
 
+    //----------- WCS Layers Panel Configurations
+
+    var wcsLayersStore = new Ext.data.GroupingStore({
+        proxy: new Ext.data.HttpProxy({url: 'getWCSLayers.do'}),
+        reader: new Ext.data.ArrayReader({}, [
+            {   name: 'title'           },
+            {   name: 'description'     },
+            {   name: 'contactOrg'      },
+            {   name: 'proxyURL'        },
+            {   name: 'serviceType'     },
+            {   name: 'id'              },
+            {   name: 'typeName'        },
+            {   name: 'serviceURLs'     },
+            {   name: 'openDapURLs'     },
+            {   name: 'wmsURLs'         },
+            {   name: 'opacity'         },
+            {   name: 'layerVisible'    },
+            {   name: 'loadingStatus'   },
+            {   name: 'dataSourceImage' }/*,
+            {   name: 'bboxes', convert : convertBboxList}*/
+        ]),
+        groupField:'contactOrg',
+        sortInfo: {field:'title', direction:'ASC'}
+    });
+
+    var wcsLayersRowExpander = new Ext.grid.RowExpander({
+        tpl : new Ext.Template('<p>{description}</p><br>')
+    });
+
+    var wcsLayersPanel = new Ext.grid.GridPanel({
+        stripeRows       : true,
+        autoExpandColumn : 'title',
+        plugins          : [ wcsLayersRowExpander ],
+        viewConfig       : {scrollOffset: 0, forceFit:true},
+        title            : 'Coverage Layers',
+        region           :'north',
+        split            : true,
+        height           : 160,
+        autoScroll       : true,
+        store            : wcsLayersStore,
+        columns: [
+            wcsLayersRowExpander,
+            {
+                id:'title',
+                header: "Title",
+                sortable: true,
+                dataIndex: 'title'
+            }/*, {
+                id:'search',
+                header: '',
+                width: 45,
+                dataIndex: 'bboxes',
+                resizable: false,
+                menuDisabled: true,
+                sortable: false,
+                fixed: true,
+                renderer: function (value) {
+                        //Only show the icon if we have a meaningful bounding box 
+                        if (isBBoxListMeaningful(value))
+                                return '<img src="img/magglass.gif"/>';
+                        else
+                                return '';
+                }
+            }*/,{
+                id:'contactOrg',
+                header: "Provider",
+                width: 160,
+                sortable: true,
+                dataIndex: 'contactOrg',
+                hidden:true
+            }
+        ],
+        bbar: [{
+            text:'Add Layer to Map',
+            tooltip:'Add Layer to Map',
+            iconCls:'add',
+            pressed:true,
+            handler: function() {
+                var recordToAdd = wcsLayersPanel.getSelectionModel().getSelected();
+
+                //Only add if the record isn't already there
+                if (activeLayersStore.findExact("id",recordToAdd.get("id")) < 0) {                
+                    //add to active layers (At the top of the Z-order)
+                    activeLayersStore.insert(0, [recordToAdd]);
+                    
+                    //invoke this layer as being checked
+                    activeLayerCheckHandler(wcsLayersPanel.getSelectionModel().getSelected(), true);
+                }
+
+                //set this record to selected
+                activeLayersPanel.getSelectionModel().selectRecords([recordToAdd], false);
+            }
+        }],
+        
+        view: new Ext.grid.GroupingView({
+            forceFit:true,
+            groupTextTpl: '{text} ({[values.rs.length]} {[values.rs.length > 1 ? "Items" : "Item"]})'
+        }),
+        tbar: [
+               'Search: ', ' ',
+               new Ext.ux.form.ClientSearchField({
+                   store: wcsLayersStore,
+                   width:200,
+                   id:'search-wcs-panel',
+                   fieldName:'title'
+               }), {
+                        xtype:'button',
+                        text:'Visible',
+                        handler:function() {
+                                var searchPanel = Ext.getCmp('search-wcs-panel');
+                                searchPanel.runCustomFilter('<visible layers>', visibleRecordsFilter);
+                        }
+               }
+           ]
+
+    });
+    
     var dataProductsStore = new Ext.data.Store({
         proxy: new Ext.data.HttpProxy({url: '/getProducts.do'}),
         reader: new Ext.data.ArrayReader({}, [
@@ -300,6 +430,14 @@ Ext.onReady(function() {
 
                     wfsHandler(record);
                 }
+            } else if (record.get('serviceType') == 'wcs') {
+                if (record.filterPanel != null) {
+                    filterPanel.add(record.filterPanel);
+                    filterPanel.getLayout().setActiveItem(record.get('id'));
+                    filterPanel.doLayout();
+                }
+                
+                wcsHandler(record);
             }
         } else {
             if (record.get('serviceType') == 'wfs') {
@@ -315,6 +453,60 @@ Ext.onReady(function() {
             filterButton.disable();
         }
     };
+
+    //The WCS handler will create a representation of a coverage on the map for a given WCS record
+    //If we have a linked WMS url we should use that (otherwise we draw an ugly red bounding box)
+    var wcsHandler = function(selectedRecord) {
+        
+        if (selectedRecord.tileOverlay instanceof OverlayManager) 
+                selectedRecord.tileOverlay.clearOverlays();
+        
+        var serviceUrlList = selectedRecord.get('serviceURLs');
+        var wmsObjList = selectedRecord.get('wmsURLs');
+        var serviceUrl = serviceUrlList[0]; //assume a single service url
+        
+        selectedRecord.responseTooltip = new ResponseTooltip();
+        var bboxList = selectedRecord.get('bboxes');
+        if (!bboxList || bboxList.length == 0) {
+                selectedRecord.responseTooltip.addResponse(serviceUrl, 'No bounding box has been specified for this coverage.');
+                return;
+        }
+        
+        if (!selectedRecord.tileOverlay)
+                selectedRecord.tileOverlay = new OverlayManager(map);
+        
+        //We will need to add the bounding box polygons regardless of whether we have a WMS service or not.
+        //The difference is that we will make the "WMS" bounding box polygons transparent but still clickable
+        var polygonList = null;
+        if (wmsObjList.length > 0) {
+                polygonList = bboxToPolygon(bboxList[0],'#000000', 0, 0.0,'#000000', 0.0);
+        } else {
+                polygonList = bboxToPolygon(bboxList[0],'#FF0000', 0, 0.7,'#FF0000', 0.6);
+        }
+        
+        //Add our polygons (they may/may not be visible)
+        for (var i = 0; i < polygonList.length; i++) {
+                polygonList[i].layerName = selectedRecord.get('typeName');
+                polygonList[i].wcsUrl = serviceUrl;
+                polygonList[i].parentRecord = selectedRecord;
+                
+                selectedRecord.tileOverlay.addOverlay(polygonList[i]);
+        }
+        
+        //Add our WMS tiles (if any)
+        for (var i = 0; i < wmsObjList.length; i++) {
+                var tileLayer = new GWMSTileLayer(map, new GCopyrightCollection(""), 1, 17);
+            tileLayer.baseURL = wmsObjList[i].url;
+            tileLayer.layers = wmsObjList[i].name;
+            tileLayer.opacity = 1.0;
+
+            selectedRecord.tileOverlay.addOverlay(new GTileLayerOverlay(tileLayer));
+        }
+        
+        //This will update the Z order of our WMS layers
+        updateActiveLayerZOrder();
+    };    
+    
 /*
     var wfsHandler = function(selectedRecord) {
         //if there is already a filter running for this record then don't call another
@@ -754,7 +946,7 @@ Ext.onReady(function() {
 
 
     // basic tabs 1, built from existing content
-/*    var tabsPanel = new Ext.TabPanel({
+    var tabsPanel = new Ext.TabPanel({
         //width:450,
         activeTab: 0,
         region:'north',
@@ -763,10 +955,12 @@ Ext.onReady(function() {
         autoScroll: true,
         //autosize:true,
         items:[
-            complexFeaturesPanel,
-            wmsLayersPanel
+            /*complexFeaturesPanel,
+            wmsLayersPanel*/
+            dataProductsPanel,
+            wcsLayersPanel
         ]
-    });*/
+    });
 
     /**
      * Used as a placeholder for the tree and details panel on the left of screen
@@ -779,7 +973,7 @@ Ext.onReady(function() {
         //margins: '100 0 0 0',
         margins:'100 0 0 3',
         width: 350,
-        items:[/*tabsPanel*/dataProductsPanel , activeLayersPanel, filterPanel]
+        items:[/*wcsLayersPanel*/tabsPanel/*dataProductsPanel*/ , activeLayersPanel, filterPanel]
     };
 
     /**
@@ -888,5 +1082,6 @@ Ext.onReady(function() {
 //    complexFeaturesStore.load();
 //    wmsLayersStore.load();
     dataProductsStore.load();
+    wcsLayersStore.load();
     
 });
