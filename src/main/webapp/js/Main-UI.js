@@ -3,6 +3,8 @@ var theglobalexml;
 //var host = "http://localhost:8080";
 //Ext.Ajax.timeout = 180000; //3 minute timeout for ajax calls
 
+//A global instance of GMapInfoWindowManager that helps to open GMap info windows
+var mapInfoWindowManager = null;
 
 Ext.onReady(function() {
     var map;
@@ -136,8 +138,8 @@ Ext.onReady(function() {
             {   name: 'opacity'         },
             {   name: 'layerVisible'    },
             {   name: 'loadingStatus'   },
-            {   name: 'dataSourceImage' }/*,
-            {   name: 'bboxes', convert : convertBboxList}*/
+            {   name: 'dataSourceImage' },
+            {   name: 'bboxes', convert : convertBboxList}
         ]),
         groupField:'contactOrg',
         sortInfo: {field:'title', direction:'ASC'}
@@ -165,7 +167,7 @@ Ext.onReady(function() {
                 header: "Title",
                 sortable: true,
                 dataIndex: 'title'
-            }/*, {
+            }, {
                 id:'search',
                 header: '',
                 width: 45,
@@ -181,7 +183,7 @@ Ext.onReady(function() {
                         else
                                 return '';
                 }
-            }*/,{
+            },{
                 id:'contactOrg',
                 header: "Provider",
                 width: 160,
@@ -234,6 +236,28 @@ Ext.onReady(function() {
            ]
 
     });
+    
+    //Checks if the given bounding box is meaningful
+    //That is it will represent a bounding box that is useful for the end user to visualize
+    var isBBoxListMeaningful = function(bboxList) {
+        if (!bboxList)
+                return false;
+        
+        if (bboxList.length == 0) {
+                return false;
+        }
+        
+        
+        var meaningful = false;
+        for (var i = 0; i < bboxList.length && !meaningful; i++) {
+                bbox = bboxList[i];
+                
+                //A bbox that covers the entire planet is not useful
+                meaningful =!bbox.isGlobal();
+        }
+        
+        return meaningful;
+    };
     
     var dataProductsStore = new Ext.data.Store({
         proxy: new Ext.data.HttpProxy({url: '/getProducts.do'}),
@@ -444,6 +468,8 @@ Ext.onReady(function() {
                 if (record.tileOverlay instanceof MarkerManager) {
                     record.tileOverlay.clearMarkers();
                 }
+            } else if (record.get('serviceType') == 'wcs') {
+                if (record.tileOverlay instanceof OverlayManager) record.tileOverlay.clearOverlays();
             } else if (record.get('serviceType') == 'wms') {
                 //remove from the map
                 map.removeOverlay(record.tileOverlay);
@@ -478,11 +504,11 @@ Ext.onReady(function() {
         //We will need to add the bounding box polygons regardless of whether we have a WMS service or not.
         //The difference is that we will make the "WMS" bounding box polygons transparent but still clickable
         var polygonList = null;
-        if (wmsObjList.length > 0) {
-                polygonList = bboxToPolygon(bboxList[0],'#000000', 0, 0.0,'#000000', 0.0);
-        } else {
+//        if (wmsObjList.length > 0) {
+//                polygonList = bboxToPolygon(bboxList[0],'#000000', 0, 0.0,'#000000', 0.0);
+//        } else {
                 polygonList = bboxToPolygon(bboxList[0],'#FF0000', 0, 0.7,'#FF0000', 0.6);
-        }
+//        }
         
         //Add our polygons (they may/may not be visible)
         for (var i = 0; i < polygonList.length; i++) {
@@ -492,7 +518,7 @@ Ext.onReady(function() {
                 
                 selectedRecord.tileOverlay.addOverlay(polygonList[i]);
         }
-        
+/*        
         //Add our WMS tiles (if any)
         for (var i = 0; i < wmsObjList.length; i++) {
                 var tileLayer = new GWMSTileLayer(map, new GCopyrightCollection(""), 1, 17);
@@ -502,10 +528,67 @@ Ext.onReady(function() {
 
             selectedRecord.tileOverlay.addOverlay(new GTileLayerOverlay(tileLayer));
         }
-        
+*/        
         //This will update the Z order of our WMS layers
         updateActiveLayerZOrder();
     };    
+    
+    //Converts a portal bbox into an array of GMap Polygon's
+    //Normally a single polygon is returned but if the polygon wraps around the antimeridian, it will be split
+    //into 2 polygons
+    var bboxToPolygon = function(bbox, strokeColor, strokeWeight, strokeOpacity, fillColor, fillOpacity, opts) {
+        
+        var splits = splitBboxes(bbox, []);
+        var result = [];
+        
+        for (var i = 0; i < splits.length; i++) {
+                var splitBbox = splits[i];
+                var ne = new GLatLng(splitBbox.northBoundLatitude, splitBbox.eastBoundLongitude);
+            var se = new GLatLng(splitBbox.southBoundLatitude, splitBbox.eastBoundLongitude);
+            var sw = new GLatLng(splitBbox.southBoundLatitude, splitBbox.westBoundLongitude);
+            var nw = new GLatLng(splitBbox.northBoundLatitude, splitBbox.westBoundLongitude);
+            
+            result.push(new GPolygon([sw, nw, ne, se, sw], strokeColor, strokeWeight, strokeOpacity, fillColor, fillOpacity, opts));
+        }
+        
+        return result;
+    };
+    
+    //param bbox The bounding box to split
+    //param okBboxList The list of boxes that the split boxes will be appended to
+    var splitBboxes = function(bbox, okBboxList) {
+
+        //SPLIT CASE 1: Polygon crossing meridian
+        if (bbox.westBoundLongitude < 0 && bbox.eastBoundLongitude > 0) {
+                var splits = bbox.splitAt(0); 
+                for (var i = 0; i < splits.length; i++) {
+                        splitBboxes(splits[i], okBboxList);
+                }
+                return okBboxList;
+        }
+        
+        //SPLIT CASE 2: Polygon crossing anti meridian
+        if (bbox.westBoundLongitude < 0 && bbox.eastBoundLongitude > 0) {
+                var splits = bbox.splitAt(-180); 
+                for (var i = 0; i < splits.length; i++) {
+                        splitBboxes(splits[i], okBboxList);
+                }
+                return okBboxList;
+        }
+        
+        //SPLIT CASE 3: Polygon is too wide (Gmap can't handle click events for wide polygons)
+        if (Math.abs(bbox.westBoundLongitude - bbox.eastBoundLongitude) > 60) {
+                var splits = bbox.splitAt((bbox.westBoundLongitude + bbox.eastBoundLongitude) / 2); 
+                for (var i = 0; i < splits.length; i++) {
+                        splitBboxes(splits[i], okBboxList);
+                }
+                return okBboxList;
+        }
+        
+        //OTHERWISE - bounding box is OK to render
+        okBboxList.push(bbox);
+        return okBboxList; 
+    };
     
 /*
     var wfsHandler = function(selectedRecord) {
@@ -627,6 +710,8 @@ Ext.onReady(function() {
                 filterButton.toggle(true);
             } else if (record.get('serviceType') == 'wms') {
                 filterButton.disable();
+            } else if (record.get('serviceType') == 'wcs') {
+                filterButton.disable();
             }
 
         } else {
@@ -678,6 +763,10 @@ Ext.onReady(function() {
                     } else if (record.get('serviceType') == 'wms') {
                         //remove from the map
                         map.removeOverlay(record.tileOverlay);
+                    } else if (record.get('serviceType') == 'wcs') {
+                        if (record.tileOverlay instanceof OverlayManager) { 
+                                record.tileOverlay.clearOverlays();
+                        }
                     }
                     //remove from the map
                     //map.removeOverlay(activeLayersPanel.getSelectionModel().getSelected().tileOverlay);
@@ -1055,6 +1144,8 @@ Ext.onReady(function() {
         map.addControl(new GOverviewMapControl(Tsize));
 
         map.addControl(new DragZoomControl(), new GControlPosition(G_ANCHOR_TOP_RIGHT, new GSize(345, 7)));
+        
+        mapInfoWindowManager = new GMapInfoWindowManager(map);
     }
 
     // Fix for IE/Firefox resize problem (See issue AUS-1364 and AUS-1565 for more info)
@@ -1071,10 +1162,10 @@ Ext.onReady(function() {
     //tree.on('checkchange', function(node, isChecked) { treeCheckChangeController(node, isChecked, map, statusBar, viewport, downloadUrls, filterPanel); });
 
     //when a person clicks on a marker then do something
-/*    GEvent.addListener(map, "click", function(overlay, latlng) {
+    GEvent.addListener(map, "click", function(overlay, latlng) {
         gMapClickController(map, overlay, latlng, activeLayersStore);
     });
-*/
+
 //    new Ext.LoadMask(tabsPanel.el, {msg: 'Please Wait...', store: wmsLayersStore});
     //new Ext.LoadMask(complexFeaturesPanel.el, {msg: 'Please Wait...', store: complexFeaturesStore});
     new Ext.LoadMask(dataProductsPanel.el, {msg: 'Please Wait...', store: /*wmsLayersStore*/dataProductsStore});
@@ -1083,5 +1174,91 @@ Ext.onReady(function() {
 //    wmsLayersStore.load();
     dataProductsStore.load();
     wcsLayersStore.load();
+
+    //Generates a bounding box polygon and puts it on the map for the given record
+    var showRecordBoundingBox = function (grid, rowIndex, colIndex, e) {
+        var record = grid.getStore().getAt(rowIndex); 
+        var fieldName = grid.getColumnModel().getDataIndex(colIndex); 
+        if (fieldName !== 'bboxes') {
+                return;
+        }
+        
+        var bboxes = record.get('bboxes');
+        if (!isBBoxListMeaningful(bboxes)) {
+                return;
+        }
+        
+        if (record.bboxOverlayManager) {
+                record.bboxOverlayManager.clearOverlays();
+                record.bboxOverlayManager = null;
+        }
+        
+        var overlayManager = new OverlayManager(map);
+        record.bboxOverlayManager = overlayManager;
+        
+        for (var i = 0; i < bboxes.length; i++) {           
+            var polygonList = bboxToPolygon(bboxes[i],'00FF00', 0, 0.7,'#00FF00', 0.6);
+            
+            for (var j = 0; j < polygonList.length; j++) {
+                polygonList[j].title = 'bbox';
+                record.bboxOverlayManager.addOverlay(polygonList[j]);
+            }
+        }
+        
+        record.bboxOverlayManager.markerManager.refresh();
+        
+        //Make the bbox disappear after a short while 
+        if (!record.bboxOverlayClearTask) {
+                record.bboxOverlayClearTask = new Ext.util.DelayedTask(function(){
+                        hideRecordBoundingBox(record);
+                });
+        }
+
+        record.bboxOverlayClearTask.delay(2000); 
+    };
     
+    //Hides a bounding box polygon
+    var hideRecordBoundingBox = function (record) {
+        //var record = grid.getStore().getAt(rowIndex); 
+                
+        if (record.bboxOverlayManager) {
+                record.bboxOverlayManager.clearOverlays();
+                record.bboxOverlayManager = null;
+        }
+        
+        record.bboxOverlayClearTask = null;
+    };    
+    
+    //Moves the GMap portlet display to display the bounding box
+    var moveToBoundingBox = function (grid, rowIndex, colIndex, e) {
+        var record = grid.getStore().getAt(rowIndex); 
+        var fieldName = grid.getColumnModel().getDataIndex(colIndex); 
+        if (fieldName !== 'bboxes') {
+                return;
+        }
+        
+        var bboxes = record.get('bboxes');
+        if (!isBBoxListMeaningful(bboxes)) {
+                return;
+        }
+        
+        //Problems : It doesn't take into account multiple bounding boxes
+        //           It fails with bounding boxes spanning the anti-meridian (the layer centre fails).
+        var bbox = bboxes[0];
+        
+        var sw = new GLatLng(bbox.southBoundLatitude, bbox.westBoundLongitude);
+        var ne = new GLatLng(bbox.northBoundLatitude, bbox.eastBoundLongitude);
+        var layerBounds = new GLatLngBounds(sw,ne);
+        
+        //Adjust zoom if required
+        var visibleBounds = map.getBounds();
+        map.setZoom(map.getBoundsZoomLevel(layerBounds));
+        
+        //Pan to position
+        var layerCenter = layerBounds.getCenter();
+        map.panTo(layerCenter);
+    };
+
+    wcsLayersPanel.on("cellclick", showRecordBoundingBox, wcsLayersPanel);
+    wcsLayersPanel.on("celldblclick", moveToBoundingBox, wcsLayersPanel);
 });

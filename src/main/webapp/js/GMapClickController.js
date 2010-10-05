@@ -23,6 +23,12 @@
  */
 var gMapClickController = function(map, overlay, latlng, activeLayersStore) {
 	
+    //Try to see if its a WCS layer
+    if (overlay && overlay.parentRecord && overlay.parentRecord.get('serviceType') == 'wcs') {
+            var infoWindow = new GenericWCSInfoWindow(map, overlay, overlay.wcsUrl, overlay.layerName, overlay.parentRecord.get('openDapURLs'), overlay.parentRecord.get('wmsURLs'));
+            infoWindow.showInfoWindow();
+    }
+    
     if (overlay instanceof GMarker) {
         
         if (overlay.typeName == "gsml:Borehole") {
