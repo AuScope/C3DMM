@@ -101,7 +101,7 @@ Ext.onReady(function() {
         reader: new Ext.data.ArrayReader({}, [
             {   name: 'title'           },
             {   name: 'description'     },
-            {   name: 'contactOrg'     },
+            {   name: 'contactOrg'      },
             {   name: 'proxyURL'        },
             {   name: 'serviceType'     },
             {   name: 'id'              },
@@ -122,7 +122,7 @@ Ext.onReady(function() {
 
     //----------- WCS Layers Panel Configurations
 
-    var wcsLayersStore = new Ext.data.GroupingStore({
+    var wcsLayersStore = new Ext.data.Store({
         proxy: new Ext.data.HttpProxy({url: 'getWCSLayers.do'}),
         reader: new Ext.data.ArrayReader({}, [
             {   name: 'title'           },
@@ -141,7 +141,7 @@ Ext.onReady(function() {
             {   name: 'dataSourceImage' },
             {   name: 'bboxes', convert : convertBboxList}
         ]),
-        groupField:'contactOrg',
+//        groupField:'contactOrg',
         sortInfo: {field:'title', direction:'ASC'}
     });
 
@@ -214,10 +214,10 @@ Ext.onReady(function() {
             }
         }],
         
-        view: new Ext.grid.GroupingView({
+/*        view: new Ext.grid.GroupingView({
             forceFit:true,
             groupTextTpl: '{text} ({[values.rs.length]} {[values.rs.length > 1 ? "Items" : "Item"]})'
-        }),
+        }),*/
         tbar: [
                'Search: ', ' ',
                new Ext.ux.form.ClientSearchField({
