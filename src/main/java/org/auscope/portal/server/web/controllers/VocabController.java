@@ -164,7 +164,7 @@ public class VocabController {
             //find the urls and layer names from the csw service which were tagged with the given product name
             for(CSWRecord cswRecord : cswRecords) {
                 if(cswRecord.containsKeyword(concept.getConceptUrn())) {
-                    layerNames.add(" " + cswRecord.getOnlineResourceName());
+                    layerNames.add(cswRecord.getOnlineResourceName());
                     serviceUrls.add(cswRecord.getServiceUrl());
                 }
             }
