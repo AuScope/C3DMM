@@ -243,7 +243,7 @@ public class CSWController {
                 //add the name of the layer/feature type
                 tableRow.add(record.getServiceName());
     
-                //add the abstract text to be shown as updateCSWRecords description
+                //add the abstract text to be shown as a description
                 tableRow.add(record.getDataIdentificationAbstract());
                 
                 //Add the contact organisation
@@ -252,16 +252,16 @@ public class CSWController {
                     org = "Unknown";
                 tableRow.add(org);
     
-                //wcs dont need updateCSWRecords proxy url
+                //wcs dont need a proxy url
                 tableRow.add("");
     
                 //add the type: wfs or wms or wcs
                 tableRow.add("wcs");
     
-                //TODO: add updateCSWRecords proper unique id
+                //TODO: add a proper unique id
                 tableRow.add(record.hashCode());
     
-                //add the featureType name (in case of updateCSWRecords WMS feature)
+                //add the featureType name (in case of a WMS feature)
                 tableRow.add(record.getOnlineResourceName());//wcsResource.getName());
     
                 JSONArray serviceURLs = new JSONArray();
