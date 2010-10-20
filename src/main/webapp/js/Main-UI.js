@@ -826,7 +826,7 @@ Ext.onReady(function() {
                 sortable: true,
                 dataIndex: 'title'
             },
-            activeLayersPanelCheckColumn/*,
+            activeLayersPanelCheckColumn,
             {
                 id:'dataSourceImage',
                 header: "",
@@ -834,7 +834,7 @@ Ext.onReady(function() {
                 sortable: false,
                 dataIndex: 'dataSourceImage',
                 align: 'center'
-            }*/
+            }
         ],
         bbar: [
             activeLayersRemoveButton
@@ -891,8 +891,8 @@ Ext.onReady(function() {
                 });
             }
             //this is the column for download link icons
-            else if (col.cellIndex == '5') {
-                var serviceType = record.get('serviceType');*/
+            else */if (col.cellIndex == '3') {
+                //var serviceType = record.get('serviceType');
                 //var html = 'Download layer data.';
 
                 /*if (serviceType == 'wms') { //if a WMS
@@ -900,7 +900,7 @@ Ext.onReady(function() {
                 } else if (serviceType == 'wfs') {//if a WFS
                     html = 'Click here to view this layers GML in new browser window.';
                 }*/
-/*
+
                 activeLayersToolTip = new Ext.ToolTip({
                     target: e.target ,
                     //title: 'Status Information',
@@ -912,7 +912,7 @@ Ext.onReady(function() {
                     autoHeight:true,
                     autoWidth: true
                 });
-            }*/
+            }
         }
     });
 
@@ -935,7 +935,7 @@ Ext.onReady(function() {
             var record = activeLayersPanel.getStore().getAt(theRow.rowIndex);
             
             //this is the column for download link icons
-            if (col.cellIndex == '5') {
+            if (col.cellIndex == '3') {
             	var serviceType = record.get('serviceType');
                 var serviceUrls = record.get('serviceURLs');
                 var keys = [serviceUrls.length];
@@ -982,7 +982,7 @@ Ext.onReady(function() {
 //                        openWindowWithPost("downloadWMSAsZip.do?", 'WMS_Layer_Download_'+new Date().getTime(), keys, values);
                     }
 
-                }/* else if (serviceType == 'wfs') {//if a WFS open a new window calling the download controller
+/*                } else if (serviceType == 'wfs') {//if a WFS open a new window calling the download controller
 
                     if (serviceUrls.length >= 1) {
                         var filterParameters = filterPanel.getLayout().activeItem == filterPanel.getComponent(0) ? "&typeName=" + record.get('typeName') : filterPanel.getLayout().activeItem.getForm().getValues(true);
@@ -996,6 +996,10 @@ Ext.onReady(function() {
                         openWindowWithPost("downloadGMLAsZip.do?", 'WFS_Layer_Download_'+new Date().getTime(), keys, values);
                     }
                 }*/
+                } else if (serviceType == 'wcs') {
+                    //Lets open the generic wcs download handler
+                    showWCSDownload(record.get('serviceURLs')[0], record.get('typeName'));
+                }
             }
         }
     });
