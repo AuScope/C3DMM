@@ -964,9 +964,9 @@ Ext.onReady(function() {
                                 url += "&STYLES=" + this.styles;
                             else
                                 url += "&STYLES="; //Styles parameter is mandatory, using a null string ensures default style  
-                            /*
-                             if (this.sld)
-                             url += "&SLD=" + this.sld;*/
+
+//                            if (this.sld)
+//                                url += "&SLD=" + this.sld;
                             url += "&FORMAT=" + "image/png";
                             url += "&BGCOLOR=0xFFFFFF";
                             url += "&TRANSPARENT=TRUE";

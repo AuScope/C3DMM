@@ -14,6 +14,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
 import java.net.URL;
+import java.net.URLEncoder;
 
 
 /**
@@ -55,10 +56,10 @@ public class WMSPopupController {
       url += "&BBOX=" + bbox;
       url += "&X=" + x + "&Y=" + y;
       url += "&INFO_FORMAT=text/html";
-      url += "&QUERY_LAYERS=" + query_layers;
+      url += "&QUERY_LAYERS=" + URLEncoder.encode(query_layers, "UTF-8");
       url += "&FEATURE_COUNT=50";
       url += "&SRS=EPSG:4326";
-      url += "&LAYERS=" + query_layers;
+      url += "&LAYERS=" + URLEncoder.encode(query_layers, "UTF-8");
       url += "&STYLES=";      // Ask server for default style
       url += "&WIDTH=" + width + "&HEIGHT=" + height;
       url += "&FORMAT=image/png";
