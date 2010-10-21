@@ -41,6 +41,8 @@
       </script>     
       
       <jsp:include page="/jsimports.htm"/>
+      
+      <link rel="shortcut icon" href="img/favicon.ico" type="image/x-icon" />
    </head>
 
    <body onunload="GUnload()">
