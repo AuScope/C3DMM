@@ -56,17 +56,7 @@ public class VocabController {
     private PortalPropertyPlaceholderConfigurer portalPropertyPlaceholderConfigurer;
     private CSWService cswService;
     
-
-    public static void main(String[] args) throws Exception {
-        String rdfResponse = new HttpServiceCaller().getMethodResponseAsString(new GetMethod("http://auscope-services-test.arrc.csiro.au/vocab-service/query?repository=3DMM&label=*"), new HttpClient());
-
-        List<Concept> concepts = new VocabularyServiceResponseHandler().getConcepts(rdfResponse);
-
-        for(Concept concept : concepts)
-            System.out.println(concept.getPreferredLabel());
-
-    }
-
+    
     /**
      * Construct
      * @param
@@ -85,7 +75,10 @@ public class VocabController {
         String vocabServiceUrl = portalPropertyPlaceholderConfigurer.resolvePlaceholder("HOST.vocabService.url");
         logger.debug("vocab service URL: " + vocabServiceUrl);
 
-        this.method = new GetMethod(vocabServiceUrl + "?repository=3DMM&label=*");
+        this.method = new GetMethod(vocabServiceUrl + "/rdf/getConceptByLabel?C3DMM/*");
+        
+        logger.debug("vocab service query path: " +
+                this.method.getPath() + "?" + this.method.getQueryString());
 
         try {
             this.cswService.updateRecordsInBackground();
