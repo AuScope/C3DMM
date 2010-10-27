@@ -225,14 +225,14 @@ Ext.onReady(function() {
                    width:200,
                    id:'search-wcs-panel',
                    fieldName:'title'
-               }), {
+               })/*, {
                         xtype:'button',
                         text:'Visible',
                         handler:function() {
                                 var searchPanel = Ext.getCmp('search-wcs-panel');
                                 searchPanel.runCustomFilter('<visible layers>', visibleRecordsFilter);
                         }
-               }
+               }*/
            ]
 
     });
