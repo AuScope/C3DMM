@@ -158,7 +158,7 @@ public class TestCSWController {
     /**
      * Test that the JSON is formatted correctly for WMS layers
      */
-    @Test
+/*    @Test
     public void testGetWMSLayers() throws Exception {
     	final String orgName = "testOrg";
         final CSWRecord mockRecord = context.mock(CSWRecord.class);
@@ -196,7 +196,7 @@ public class TestCSWController {
         else
             Assert.assertFalse(true);
     }
-
+*/
     //TODO: testWMS Layers no layers available, none recorded in the CSW
 
 }

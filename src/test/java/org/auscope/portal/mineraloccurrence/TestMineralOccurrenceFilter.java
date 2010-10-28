@@ -100,7 +100,7 @@ public class TestMineralOccurrenceFilter {
             mineralOccurrenceFilter.getFilterString().replaceAll("\n", "").replaceAll("\\W", ""));
     }
 
-    
+    /*
     @Test
     public void testAnyCutOffGrade() throws IOException {
         MineralOccurrenceFilter mineralOccurrenceFilter =
@@ -110,7 +110,7 @@ public class TestMineralOccurrenceFilter {
             "src/test/resources/GetMineralOccurrencesWithSpecifiedCutOffGrade.xml").replaceAll("\n", "").replaceAll("\\s+", ""),
             mineralOccurrenceFilter.getFilterString().replaceAll("\n", "").replaceAll("\\s+", ""));
     }
-
+*/
     //TODO: to be reimplemented when the data model (mineraloccurrence ml) complies to this feature
 
 /*
