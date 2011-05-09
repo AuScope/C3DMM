@@ -1,6 +1,6 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd"> 
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.auscope.c3dmmportal</groupId>
     <artifactId>C3DMM-Portal</artifactId>
@@ -17,17 +17,17 @@
         <plugins>
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
+                <version>2.3.2</version>
                 <configuration>
                     <source>1.6</source>
                     <target>1.6</target>
                     <compilerVersion>1.6</compilerVersion>
-                    <verbose>true</verbose>
                 </configuration>
             </plugin>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>buildnumber-maven-plugin</artifactId>
-                <version>1.0-beta-2</version>
+                <version>1.0</version>
                 <executions>
                     <execution>
                         <phase>validate</phase>
@@ -38,15 +38,22 @@
                 </executions>
                 <configuration>
                     <doCheck>false</doCheck>
-                    <doUpdate>true</doUpdate>
+                    <doUpdate>false</doUpdate>
                     <timestampFormat>{0,date,dd-MM-yyyy HH:mm}</timestampFormat>
                 </configuration>
             </plugin>
             <plugin>
+                <artifactId>maven-surefire-plugin</artifactId>
+				<version>2.6</version>
+			</plugin>
+            <plugin>
+                <artifactId>maven-resources-plugin</artifactId>
+				<version>2.4.3</version>
+			</plugin>
+            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-war-plugin</artifactId>
-                <!-- <version>2.1-beta-1</version> -->
-                <version>2.0.2</version>
+                <version>2.1</version>
                 <configuration>
                     <archive>
                         <manifest>
@@ -83,48 +90,89 @@
             <plugin>
                 <groupId>org.mortbay.jetty</groupId>
                 <artifactId>maven-jetty-plugin</artifactId>
-                <version>6.1.7</version>
+                <version>${jetty.version}</version>
                 <dependencies>
                     <dependency>
                         <groupId>log4j</groupId>
                         <artifactId>log4j</artifactId>
-                        <version>1.2.13</version>
+                        <version>${log4j.version}</version>
                     </dependency>
                 </dependencies>
                 <configuration>
                     <webApp>${project.build.directory}/${project.build.finalName}</webApp>
-                    <!--
-                    <webAppSourceDirectory>
-                       ${webdir}
-                    </webAppSourceDirectory>
-                    -->
                     <scanIntervalSeconds>9999</scanIntervalSeconds>
                     <contextPath>/</contextPath>
-                    <systemProperties>
-                        <systemProperty>
-                            <name>maven.test.skip</name>
-                            <value>true</value>
-                        </systemProperty>
-                    </systemProperties>
-                </configuration>
+				</configuration>
             </plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-eclipse-plugin</artifactId>
+				<version>2.8</version>
+				<configuration>
+					<classpathContainers>
+						<classpathContainer>org.eclipse.jdt.launching.JRE_CONTAINER</classpathContainer>
+					</classpathContainers>
+					<wtpversion>2.0</wtpversion>
+				</configuration>
+			</plugin>
+    	  	<plugin>
+        		<groupId>net.alchim31.maven</groupId>
+		        <artifactId>yuicompressor-maven-plugin</artifactId>
+		        <version>1.1</version>
+        		<configuration>
+					<excludes>
+				    	<!-- Exclude Ext JS -->
+				    	<exclude>js/external/**</exclude>
+					</excludes>
+                	<nosuffix>true</nosuffix>
+        		</configuration>
+		        <executions>
+        			<execution>
+            			<goals>
+		                    <goal>jslint</goal>
+            			</goals>
+          			</execution>
+        		</executions>
+	      	</plugin>
+	      	<plugin>
+ 				<groupId>org.zeroturnaround</groupId>
+				<artifactId>javarebel-maven-plugin</artifactId>
+				<version>1.0.5</version>
+				<executions>
+					<execution>
+      					<id>generate-rebel-xml</id>
+						<phase>process-resources</phase>
+						<goals>
+							<goal>generate</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
         </plugins>
     </build>
-    
-    <properties>
-        <jetty.version>6.1.7</jetty.version>
-        <spring.version>3.0.2.RELEASE</spring.version>
-        <spring.security.version>2.0.4</spring.security.version>
-        <geotools.version>2.6.1</geotools.version>
-    </properties>
-    
+
     <repositories>
         <repository>
             <id>osgeo</id>
             <name>Open Source Geospatial Foundation Repository</name>
             <url>http://download.osgeo.org/webdav/geotools</url>
         </repository>
+        <repository>
+        	<id>geotoolkit</id>
+        	<name>Geo Toolkit Repository</name>
+        	<url>http://maven.geotoolkit.org/</url>
+        </repository>
     </repositories>
+
+    <!-- Project properties -->
+    <properties>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <jetty.version>6.1.25</jetty.version>
+        <log4j.version>1.2.16</log4j.version>
+        <spring.version>3.0.5.RELEASE</spring.version>
+        <spring.security.version>3.0.5.RELEASE</spring.security.version>
+        <geotools.version>2.6.5</geotools.version>
+    </properties>
 
     <dependencies>
         <!-- Servlets 2.4 - JSTL 1.1 -->
@@ -144,17 +192,7 @@
             <artifactId>standard</artifactId>
             <version>1.1.2</version>
         </dependency>
-<!--        <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring</artifactId>
-            <version>${spring.version}</version>
-            <exclusions>
-                <exclusion>
-                    <artifactId>javax.servlet</artifactId>
-                    <groupId>jstl</groupId>
-                </exclusion>
-            </exclusions>
-        -->
+
         <!--
         Bean Factory and JavaBeans utilities (depends on spring-core)
         Define this if you use Spring Bean APIs (org.springframework.beans.*)
@@ -165,20 +203,20 @@
             <version>${spring.version}</version>
             <scope>compile</scope>
         </dependency>
-        
+
         <!--
         Application Context (depends on spring-core, spring-expression, spring-aop, spring-beans)
         This is the central artifact for Spring's Dependency Injection Container and is generally
-        always defined 
+        always defined
         (org.springframework.stereotype.*, org.springframework.ui.*)
         -->
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-context</artifactId>
             <version>${spring.version}</version>
-            <scope>compile</scope> 
+            <scope>compile</scope>
         </dependency>
-                
+
         <!--
         Web application development utilities applicable to both Servlet and Portlet Environments
         (depends on spring-core, spring-beans, spring-context)
@@ -191,7 +229,7 @@
             <version>${spring.version}</version>
             <scope>compile</scope>
         </dependency>
-        
+
         <!--
         Spring MVC for Servlet Environments (depends on spring-core, spring-beans, spring-context,
         spring-web)
@@ -205,7 +243,7 @@
         </dependency>
         <dependency>
             <groupId>org.springframework.security</groupId>
-            <artifactId>spring-security-core-tiger</artifactId>
+            <artifactId>spring-security-core</artifactId>
             <version>${spring.security.version}</version>
             <exclusions>
                 <exclusion>
@@ -264,7 +302,7 @@
             <groupId>net.sf.saxon</groupId>
             <artifactId>saxon-xom</artifactId>
             <version>8.7</version>
-        </dependency> 
+        </dependency>
         <dependency>
             <groupId>RestProxy</groupId>
             <artifactId>RestProxy</artifactId>
