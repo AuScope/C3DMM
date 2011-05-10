@@ -55,8 +55,8 @@ public class VocabController {
     private VocabularyServiceResponseHandler vocabularyServiceResponseHandler;
     private PortalPropertyPlaceholderConfigurer portalPropertyPlaceholderConfigurer;
     private CSWService cswService;
-    
-    
+
+
     /**
      * Construct
      * @param
@@ -70,13 +70,13 @@ public class VocabController {
         this.httpServiceCaller = httpServiceCaller;
         this.vocabularyServiceResponseHandler = vocabularyServiceResponseHandler;
         this.cswService = cswService;
-        
-        
+
+
         String vocabServiceUrl = portalPropertyPlaceholderConfigurer.resolvePlaceholder("HOST.vocabService.url");
         logger.debug("vocab service URL: " + vocabServiceUrl);
 
         this.method = new GetMethod(vocabServiceUrl + "/rdf/getConceptByLabel?C3DMM/*");
-        
+
         logger.debug("vocab service query path: " +
                 this.method.getPath() + "?" + this.method.getQueryString());
 
@@ -85,7 +85,7 @@ public class VocabController {
         } catch (Exception e) {
             logger.error(e);
         }
-        
+
 /*        this.method = new GetMethod(vocabServiceUrl);
 
         //set all of the parameters
@@ -93,14 +93,14 @@ public class VocabController {
         //NameValuePair property = new NameValuePair("property1", "skos:inScheme");
         //NameValuePair value    = new NameValuePair("property_value1", "<urn:cgi:classifierScheme:GA:commodity>");
         NameValuePair property = new NameValuePair("property2", "<urn:cgi:classifierScheme:GA:commodity>");
-        
+
         //attach them to the method
         this.method.setQueryString(new NameValuePair[]{repo, property});*/
         this.portalPropertyPlaceholderConfigurer = portalPropertyPlaceholderConfigurer;
     }
-    
+
     //TODO: optimise this function, loops in loops can't be optimal
-    @RequestMapping("/getProducts.do")
+    @RequestMapping("getProducts.do")
     public ModelAndView getProducts() throws Exception {
         //update the records if need be
         cswService.updateRecordsInBackground();
@@ -136,7 +136,7 @@ public class VocabController {
             //skip if not C3DMM
             if (org.compareTo("C3DMM") != 0)
             	continue;
-*/            
+*/
             tableRow.add("");
 
             //wms dont need a proxy url
@@ -147,7 +147,7 @@ public class VocabController {
 
             //TODO: add a proper unique id
             tableRow.add(concept.hashCode());
-            
+
             //an array for the layer names
             JSONArray layerNames = new JSONArray();
 
@@ -172,7 +172,7 @@ public class VocabController {
             tableRow.add("<img src='js/external/extjs/resources/images/default/grid/done.gif'>");
 
             tableRow.add("<a href='http://portal.auscope.org' id='mylink' target='_blank'><img src='img/picture_link.png'></a>");
-            
+
             tableRow.add("1.0");
 
             //add to the list
@@ -181,7 +181,7 @@ public class VocabController {
 
         return new JSONModelAndView(dataItems);
     }
-    
+
     /**
      * Performs a query to the vocabulary service on behalf of the client and returns a JSON Map
      * success: Set to either true or false
@@ -195,50 +195,50 @@ public class VocabController {
 /*    @RequestMapping("/getScalar.do")
     public ModelAndView getScalarQuery(@RequestParam("repository") final String repository,
     								 @RequestParam("label") final String label) throws Exception {
-    	String response = ""; 
-    	
+    	String response = "";
+
     	//Attempt to request and parse our response
     	try {
     		//Do the request
 	    	response = httpServiceCaller.getMethodResponseAsString(new ICSWMethodMaker() {
 	            public HttpMethodBase makeMethod() {
 	                GetMethod method = new GetMethod(portalPropertyPlaceholderConfigurer.resolvePlaceholder("HOST.vocabService.url"));
-	
+
 	                //set all of the parameters
 	                NameValuePair request = new NameValuePair("repository", repository);
 	                NameValuePair elementSet = new NameValuePair("label", label);
-	
+
 	                //attach them to the method
 	                method.setQueryString(new NameValuePair[]{request, elementSet});
-	
+
 	                return method;
 	            }
 	        }.makeMethod(), httpServiceCaller.getHttpClient());
-	    	
+
 	    	//Parse the response
 	    	XPath xPath = XPathFactory.newInstance().newXPath();
 	    	DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
 	        DocumentBuilder builder = factory.newDocumentBuilder();
 	        InputSource inputSource = new InputSource(new StringReader(response));
             Document doc = builder.parse(inputSource);
-            
+
             String extractLabelExpression = "/RDF/Concept/prefLabel";
             Node tempNode = (Node)xPath.evaluate(extractLabelExpression, doc, XPathConstants.NODE);
     		final String labelString = tempNode != null ? tempNode.getTextContent() : "";
-    		
+
     		String extractScopeExpression = "/RDF/Concept/scopeNote";
     		tempNode = (Node)xPath.evaluate(extractScopeExpression, doc, XPathConstants.NODE);
     		final String scopeNoteString = tempNode != null ? tempNode.getTextContent() : "";
-    		
+
     		return CreateScalarQueryModel(true,response, scopeNoteString, labelString);
     	} catch (Exception ex) {
     		//On error, just return failure JSON (and the response string if any)
     		logger.error("getVocabQuery ERROR: " + ex.getMessage());
-    	
+
     		return CreateScalarQueryModel(false,response, "", "");
     	}
     }
-    
+
     private JSONModelAndView CreateScalarQueryModel(final boolean success, final String data, final String scopeNote, final String label) {
     	ModelMap map = new ModelMap() {{
             put("success", success);
@@ -246,13 +246,13 @@ public class VocabController {
             put("scopeNote", scopeNote);
             put("label", label);
         }};
-        
+
         return new JSONModelAndView(map);
     }*/
 
     /**
      * Get all GA commodity URNs with prefLabels
-     * 
+     *
      * @param
      */
 /*    @RequestMapping("/getCommodities.do")
@@ -285,49 +285,49 @@ public class VocabController {
 
         return new JSONModelAndView(dataItems);
     }*/
-    
-    
+
+
     /**
      * Get all GA commodity URNs with prefLabels
-     * 
+     *
      * @param
-     */        
+     */
 /*    @RequestMapping("/getAllCommodities.do")
     public ModelAndView getAllCommodities() throws Exception {
 
-        String response = ""; 
+        String response = "";
         JSONArray dataItems = new JSONArray();
-        
+
         //Attempt to request and parse our response
         try {
             //Do the request
             response = httpServiceCaller.getMethodResponseAsString(new ICSWMethodMaker() {
                 public HttpMethodBase makeMethod() {
                     GetMethod method = new GetMethod(portalPropertyPlaceholderConfigurer.resolvePlaceholder("HOST.vocabService.url"));
-                        
+
                     //set all of the parameters
                     NameValuePair request   = new NameValuePair("repository", "commodity_vocab");
                     NameValuePair elementSet = new NameValuePair("property2", "<urn:cgi:classifierScheme:GA:commodity>");
-    
+
                     //attach them to the method
                     method.setQueryString(new NameValuePair[]{request, elementSet});
-    
+
                     return method;
                 }
             }.makeMethod(), httpServiceCaller.getHttpClient());
 
-            // Parse the response            
+            // Parse the response
             DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-            DocumentBuilder builder = factory.newDocumentBuilder();            
+            DocumentBuilder builder = factory.newDocumentBuilder();
             InputSource inputSource = new InputSource(new StringReader(response));
-            Document doc = builder.parse(inputSource); 
-            
+            Document doc = builder.parse(inputSource);
+
             XPath xPath = XPathFactory.newInstance().newXPath();
-            NodeList exprResult = (NodeList)xPath.evaluate("/sparql/results/result", doc, XPathConstants.NODESET);            
-            
+            NodeList exprResult = (NodeList)xPath.evaluate("/sparql/results/result", doc, XPathConstants.NODESET);
+
             JSONArray tableRow;
 
-            for (int i=0; i < exprResult.getLength(); i++) {                
+            for (int i=0; i < exprResult.getLength(); i++) {
 
                 Element result = (Element)exprResult.item(i);
 
@@ -339,13 +339,13 @@ public class VocabController {
                 //add to the list
                 dataItems.add(tableRow);
             }
-            
+
             return new JSONModelAndView(dataItems);
-            
+
         } catch (Exception ex) {
             //On error, just return failure JSON (and the response string if any)
             logger.error("getAllCommodities Exception: " + ex.getMessage());
-        
+
             return new JSONModelAndView(dataItems);
         }
     }*/
