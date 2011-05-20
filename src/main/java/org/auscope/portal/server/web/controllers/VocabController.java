@@ -78,9 +78,7 @@ public class VocabController {
     //TODO: optimise this function, loops in loops can't be optimal
     @RequestMapping("/getProducts.do")        
     public ModelAndView getProducts() throws Exception {
-        System.out.println("XXXXXXXXXXXXXXXgetProducts.doXXXXXXXXXXXXXXXXXXXXXXXX");        
-        
-    	
+            	
     	//update the records if need be
         //cswService.updateRecordsInBackground();
 

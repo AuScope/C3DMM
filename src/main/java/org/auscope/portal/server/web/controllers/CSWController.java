@@ -69,7 +69,6 @@ public class CSWController extends CSWRecordResponse {
 				CSWOnlineResource.OnlineResourceType[] types 
 					= new CSWOnlineResource.OnlineResourceType[filteredLayers.length];
 				for(int i=0; i<filteredLayers.length; i++) {
-					System.out.println("filteredLayers["+ i +"] = " +filteredLayers[i]);
 					if("WMS".equals(filteredLayers[i])) 
 						types[i]= OnlineResourceType.WMS;
 					else if("WFS".equals(filteredLayers[i]))
