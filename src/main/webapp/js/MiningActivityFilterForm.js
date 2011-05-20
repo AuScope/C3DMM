@@ -4,111 +4,107 @@
  * @param {number} the id of this formpanel instance
  * @param {string} the service url for submit
  */
-MiningActivityFilterForm = function(id, serviceUrl) {
-    /*var mineNamesStore = new Ext.data.Store({
-        baseParams: {serviceUrl: serviceUrl},
-        proxy: new Ext.data.HttpProxy(new Ext.data.Connection({url: '/getMineNames.do', timeout:180000})),
-        reader: new Ext.data.JsonReader({
-            root:'data'
-        }, [{name:'mineDisplayName', mapping:'mineDisplayName'}])
-    });*/
+MiningActivityFilterForm = function(id) {
+    //-----------Commodities
 
-    Ext.FormPanel.call(this, {
+    var commodityStore = new Ext.data.SimpleStore({
+        fields   : ['urn', 'label'],
+        proxy    : new Ext.data.HttpProxy({url: 'getAllCommodities.do'}),
+        sortInfo : {field:'label',order:'ASC'},
+        reader : new Ext.data.ArrayReader({}, [
+            { name:'urn'   },
+            { name:'label' }
+        ])
+    });
+
+    var callingInstance = this;
+    commodityStore.load( {
+        callback : function() {
+            callingInstance.isFormLoaded = true;
+            callingInstance.fireEvent('formloaded');
+        }
+    });
+
+    var producedMaterialCombo = new Ext.form.ComboBox({
+        tpl: '<tpl for="."><div ext:qtip="{label}" class="x-combo-list-item">{label}</div></tpl>',
+        anchor         : '100%',
+        name           : 'producedMaterialDisplayed', /* this just returns the values from displayField! */
+        hiddenName     : 'producedMaterial',         /* this returns the values from valueField! */
+        fieldLabel     : 'Produced Material',
+        labelAlign     : 'right',
+        forceSelection : true,
+        mode           : 'local',
+        store          : commodityStore,
+        triggerAction  : 'all',
+        typeAhead      : true,
+        displayField   :'label',   /* change tpl field to this value as well! */
+        valueField     :'label'
+    });
+
+
+    MiningActivityFilterForm.superclass.constructor.call(this, {
         id          : String.format('{0}',id),
         border      : false,
         autoScroll  : true,
         hideMode    : 'offsets',
         width       : '100%',
         labelAlign  : 'right',
-        labelWidth  : 150,
+        labelWidth  : 130,
         timeout     : 180, //should not timeout before the server does
-        //height: 300,
-        //autoHeight: true,
         bodyStyle   : 'padding:5px',
         items: [{
             xtype:'fieldset',
-            title: 'Mining Activity Filter Properties',
-            autoHeight:true,
-            defaultType: 'datefield',
+            title: '<span qtip="Please enter the filter constraints then hit \'Apply Filter\'">' +
+            	   'Mining Activity Filter Properties' +
+            	   '</span>',
+            defaultType: 'textfield',
+            defaults: {anchor: '100%'},
             items :[
             {
-                anchor: '100%',
-                xtype: 'textfield',
-                fieldLabel: 'Associated Mine',
+                fieldLabel: '<span qtip="Wildcards: \'!\' escape character; \'*\' zero or more, \'#\' just one character.">' +
+            				'Associated Mine' +
+            				'</span>',
                 name: 'mineName'
-            }
-            /*new Ext.form.ComboBox({
-                anchor: '100%',
-                fieldLabel: 'Mine Name',
-                name: 'mineName',
-                typeAhead: true,
-                forceSelection: true,
-                mode: 'remote',
-                triggerAction: 'all',
-                selectOnFocus: true,
-                editable: true,
-                xtype: 'combo',
-                store: mineNamesStore,
-                displayField:'mineDisplayName',
-                valueField:'mineDisplayName'
-            })*/,{
-                anchor: '100%',
-                xtype: 'textfield',
-                fieldLabel: 'Produced Material Name',
-                name: 'producedMaterial'
-            },{
-                anchor: '100%',
-                fieldLabel: 'Mining Activity Start Date',
+            },
+            producedMaterialCombo,
+            {
+                xtype: 'datefield',
+                fieldLabel: '<span qtip="Activity which start AFTER this date">' +
+                			'Activity Start Date' +
+                			'</span>',
                 name: 'startDate',
-                format: "d/M/Y",
-                value: ''
-            }, {
-                anchor: '100%',
-                fieldLabel: 'Mining Activity End Date',
-                name: 'endDate',
-                format: "d/M/Y",
+                format: "Y-m-d",
                 value: ''
             },{
-                anchor: '100%',
-                xtype: 'textfield',
-                fieldLabel: 'Min. Ore Processed',
+                xtype: 'datefield',
+                fieldLabel: '<span qtip="Activity which end BEFORE this date">' +
+                			'Activity End Date' +
+                			'</span>',
+
+                name: 'endDate',
+                format: "Y-m-d",
+                value: ''
+            },{
+                fieldLabel: '<span qtip="Minimum Amount of Ore Processed">' +
+                			'Min. Ore Processed' +
+                			'</span>',
                 name: 'oreProcessed'
             },{
-                anchor: '100%',
-                xtype: 'textfield',
+                fieldLabel: '<span qtip="Minimum Amount of Product Produced">' +
+                			'Min. Prod. Amount' +
+                			'</span>',
+                name: 'production'
+            },{
                 fieldLabel: 'Grade',
                 name: 'cutOffGrade',
                 hidden: true,
                 hideLabel: true
-            },{
-                anchor: '100%',
-                xtype: 'textfield',
-                fieldLabel: 'Min. Production Amount',
-                name: 'production'
             }]
         }]
-        /*buttons: [{
-            text: 'Show Me >>',
-            handler: function() {
-                preSubmitFunction();
-                thePanel.getForm().submit({
-                    url:submitUrl,
-                    waitMsg:'Running query...',
-                    params: {serviceUrl: serviceUrl},
-                    success: successFunction,
-                    failure: function(form, action) {
-                        Ext.MessageBox.show({
-                            title: 'Filter Failed',
-                            msg: action.result.msg,
-                            buttons: Ext.MessageBox.OK,
-                            animEl: 'mb9',
-                            icon: Ext.MessageBox.ERROR
-                        });
-                    }
-                });
-            }
-        }]*/
     });
 };
 
-MiningActivityFilterForm.prototype = new Ext.FormPanel();
+Ext.extend(MiningActivityFilterForm, BaseFilterForm, {
+
+});
+

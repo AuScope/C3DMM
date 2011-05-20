@@ -11,9 +11,13 @@ import javax.xml.xpath.XPathExpression;
 import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
+
+
 
 /**
  * This class is a wrapper for er:Mine XML feature  
@@ -21,7 +25,9 @@ import org.xml.sax.SAXException;
  * @version $Id$
  */
 public class Mine {
-    //private Document mineDocument;
+    
+    protected final Log log = LogFactory.getLog(getClass());
+ // private Document mineDocument;
     private Node mineNode;
     private XPath xPath;
 
@@ -32,7 +38,11 @@ public class Mine {
         xPath = factory.newXPath();
         xPath.setNamespaceContext(new MineralOccurrenceNamespaceContext());
     }
-
+    
+    
+    /*
+     * Find a prefered name or the first name you have in the list.
+     */
     public String getMineNamePreffered() throws XPathExpressionException {
         XPathExpression expr = xPath.compile("er:mineName/er:MineName/er:isPreferred");
         NodeList prefferedNodes = (NodeList)expr.evaluate(mineNode, XPathConstants.NODESET);
@@ -62,7 +72,7 @@ public class Mine {
     public List<String> getRelatedActivities() {
         List<String> result = new ArrayList<String>();
         try {
-            XPathExpression expr = xPath.compile("er:relatedActivity/@xlink:href");
+            XPathExpression expr = xPath.compile("er:relatedActivity/er:MiningActivity/er:occurrence/@xlink:href");
             Object relatedNodes = expr.evaluate(mineNode, XPathConstants.NODESET);
             NodeList nodes = (NodeList) relatedNodes;
             String search  = "urn:cgi";
@@ -74,6 +84,7 @@ public class Mine {
                 j = s.indexOf(search);
                 if (j!=-1)
                     result.add(s.substring(j));
+                    //log.debug((i+1) + " : " + s.substring(j));
             }
 
             return result;
@@ -92,7 +103,7 @@ public class Mine {
             NodeList nodes = (NodeList) relatedNodes;
             
             for (int i = 0; i < nodes.getLength(); i++) {
-                System.out.println(nodes.item(i).getNodeValue());
+                log.debug(i + " : " + nodes.item(i).getNodeValue());
                 result.add(nodes.item(i).getNodeValue());
             }
 

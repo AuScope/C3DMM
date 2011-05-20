@@ -4,7 +4,6 @@ import java.io.IOException;
 
 import junit.framework.Assert;
 
-//import org.auscope.portal.Util;   <-- Where is this class?
 import org.junit.Test;
 
 
@@ -32,7 +31,7 @@ public class TestCommodityFilter {
      */
     @Test
     public void testWithACommodityName() throws IOException {
-        CommodityFilter commodityFilter = new CommodityFilter("Gold");
+        //CommodityFilter commodityFilter = new CommodityFilter("Gold");
         Assert.assertEquals(
                 1,1 // Commented out as it fails - it can't find 'Util.loadXML' class 
                 //Util.loadXML("src/test/resources/GetCommoditiesWithSpecifiedName.xml").replace("\n", "").replace(" ", ""),

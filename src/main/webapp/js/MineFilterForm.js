@@ -3,17 +3,19 @@
  * @param {number} id of this formpanel instance
  * @param {string} the service url for submit
  */
-MineFilterForm = function(id, serviceUrl) {
+MineFilterForm = function(id) {
     /*
     var mineNamesStore = new Ext.data.Store({
         baseParams: {serviceUrl: serviceUrl},
-        proxy: new Ext.data.HttpProxy(new Ext.data.Connection({url: '/getMineNames.do', timeout:180000})),
+        proxy: new Ext.data.HttpProxy(new Ext.data.Connection({url: 'getMineNames.do', timeout:180000})),
         reader: new Ext.data.JsonReader({
             root:'data'
         }, [{name:'mineDisplayName', mapping:'mineDisplayName'}])
     });*/
-    
-    Ext.FormPanel.call(this, {
+
+    this.isFormLoaded = true; //We aren't reliant on any remote downloads
+
+    MineFilterForm.superclass.constructor.call(this, {
         id          : String.format('{0}',id),
         border      : false,
         autoScroll  : true,
@@ -27,57 +29,25 @@ MineFilterForm = function(id, serviceUrl) {
         autoHeight: true,
         items       : [{
             xtype      :'fieldset',
-            title      : 'Mine Filter Properties',
+            title      : '<span qtip="Please enter the filter constraints then hit \'Apply Filter\'">' +
+        				 'Mine Filter Properties' +
+        				 '</span>',
             autoHeight : true,
             items      : [
             {
                 anchor     : '100%',
                 xtype      : 'textfield',
-                fieldLabel : 'Mine Name',
+                fieldLabel : '<span qtip="Wildcards: \'!\' escape character; \'*\' zero or more, \'#\' just one character.">' +
+                			 'Mine Name' +
+                			 '</span>',
                 name       : 'mineName'
-            }
-            /*new Ext.form.ComboBox({
-                anchor: '100%',
-                autoWidth: true,
-                name: 'mineName',
-                displayField:'mineDisplayName',
-                editable: true,
-                fieldLabel: 'Mine Name',
-                forceSelection: true,
-                listWidth: 300,            // 'auto' does not work in IE6
-                mode: 'remote',
-                selectOnFocus: true,
-                store: mineNamesStore,
-                triggerAction: 'all',
-                typeAhead: true,
-                valueField:'mineDisplayName',
-                xtype: 'combo'
-            })*/
-            ]
+            }]
         }]
-        /*buttons: [{
-            text: 'Show Me >>',
-            handler: function() {
-                preSubmitFunction();
-                thePanel.getForm().submit({
-                    url:submitUrl,
-                    waitMsg:'Running query...',
-                    params: {serviceUrl: serviceUrl},
-                    success: successFunction,
-                    failure: function(form, action) {
-                        Ext.MessageBox.show({
-                            title: 'Filter Failed',
-                            msg: action.result.msg,
-                            buttons: Ext.MessageBox.OK,
-                            animEl: 'mb9',
-                            icon: Ext.MessageBox.ERROR
-                        });
-                    }
-                });
-            }
-        }]*/
     });
     //return thePanel;
 };
 
-MineFilterForm.prototype = new Ext.FormPanel();
+Ext.extend(MineFilterForm, BaseFilterForm, {
+
+});
+

@@ -1,13 +1,12 @@
 <html>
   <head>
-    <script src="http://maps.google.com/maps?file=api&amp;v=2.x&amp;key=${googleKey}" type="text/javascript"></script>    
+    <script src="http://maps.google.com/maps?file=api&amp;v=2.x&amp;key=${googleKey}" type="text/javascript"></script>
     <script src="../js/geoscimlwfs/global_variables.js" type="text/javascript"></script>
     <script type="text/javascript">
       function downloadImage() {
         if(location.search!='') {
           // paramList should contain coreid=xxx
           var sparamsList =  location.search.substring(1);
-          //var sMosaicUrl = top.location.protocol + "//" + top.location.host + "/geodesyworkflow/nvcl/mosaic/trays?";
           var sMosaicUrl = ProxyURL + NVCL_WEB_SERVICE_IP + "/scalars.asmx/trayids?";
           sMosaicUrl += sparamsList;
           GDownloadUrl(sMosaicUrl, function(pData, pResponseCode) {
@@ -76,7 +75,7 @@
       </script>
     </head>
 	<body onLoad="downloadImage();">
-		<div id="div_mosaic_image" overflow="auto">
+		<div id="div_mosaic_image" style="overflow:auto;">
 		</div>
 	</body>
 </html>

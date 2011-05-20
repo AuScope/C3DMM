@@ -1,19 +1,26 @@
 package org.auscope.portal.server.web.service;
 
-import org.apache.commons.httpclient.*;
-import org.apache.commons.httpclient.params.HttpMethodParams;
+import java.io.BufferedInputStream;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.ConnectException;
+import java.net.URL;
+import java.net.UnknownHostException;
+
+import org.apache.commons.httpclient.ConnectTimeoutException;
+import org.apache.commons.httpclient.Header;
+import org.apache.commons.httpclient.HttpClient;
+import org.apache.commons.httpclient.HttpConnectionManager;
+import org.apache.commons.httpclient.HttpMethodBase;
+import org.apache.commons.httpclient.HttpStatus;
+import org.apache.commons.httpclient.SimpleHttpConnectionManager;
 import org.apache.commons.httpclient.params.HttpConnectionManagerParams;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
-
-import java.net.*;
-import java.io.BufferedReader;
-import java.io.BufferedInputStream;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.IOException;
 
 
 /**
@@ -25,6 +32,14 @@ import java.io.IOException;
 @Repository
 public class HttpServiceCaller {
     protected final Log log = LogFactory.getLog(getClass());
+
+    private HttpConnectionManagerParams clientParams;
+
+    @Autowired
+    public void setClientParams(HttpConnectionManagerParams clientParams) {
+        this.clientParams = clientParams;
+    }
+
     /**
      * Makes a call to a http GetMethod and returns the response as a string
      *
@@ -38,18 +53,22 @@ public class HttpServiceCaller {
         this.invokeTheMethod(method, httpClient);
 
         //get the reponse before we close the connection
-        String response = method.getResponseBodyAsString();
+        //String response = method.getResponseBodyAsString();
+
+        String response = responseToString(new BufferedInputStream(method.getResponseBodyAsStream()));
 
         //release the connection
         method.releaseConnection();
 
+        log.trace("XML response from server:");
+        log.trace("\n" + response);
         //return it
         return response;
     }
 
     /**
      * Invokes a method and returns the binary response as a stream
-     * 
+     *
      * WARNING - ensure you call method.releaseConnection() AFTER you have finished reading the input stream
      *
      * @return
@@ -86,11 +105,8 @@ public class HttpServiceCaller {
      * @param httpClient
      */
     private void invokeTheMethod(HttpMethodBase method, HttpClient httpClient) throws Exception {
-        //set the timeout, to 1 minute
-        HttpConnectionManagerParams clientParams = new HttpConnectionManagerParams();
-        clientParams.setParameter(HttpMethodParams.HEAD_BODY_CHECK_TIMEOUT, 60000);
-        clientParams.setSoTimeout(60000);
-        clientParams.setConnectionTimeout(60000);
+
+        log.debug("method=" + method.getURI());
 
         //create the connection manager and add it to the client
         HttpConnectionManager man = new SimpleHttpConnectionManager();
@@ -120,7 +136,7 @@ public class HttpServiceCaller {
      * @return
      */
     public Header getResponseHeader(HttpMethodBase method, String header) {
-        return method.getResponseHeader(header);   
+        return method.getResponseHeader(header);
     }
 
     /**
@@ -128,9 +144,9 @@ public class HttpServiceCaller {
      * @return
      */
     public HttpClient getHttpClient() {
-        return new HttpClient();        
+        return new HttpClient();
     }
-    
+
     /**
      * Given a URL, call it, convert the response into a String and return
      * @param serviceUrl
@@ -140,7 +156,7 @@ public class HttpServiceCaller {
     public String callHttpUrlGET(URL serviceUrl) throws IOException {
         return responseToString(new BufferedInputStream(serviceUrl.openStream()));
     }
-    
+
     /**
      * Convert a Buffered stream into a String
      * @param stream
@@ -155,5 +171,5 @@ public class HttpServiceCaller {
             stringBuffer.append(line);
         }
         return stringBuffer.toString();
-    }   
+    }
 }

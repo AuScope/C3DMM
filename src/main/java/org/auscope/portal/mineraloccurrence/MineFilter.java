@@ -1,37 +1,47 @@
 package org.auscope.portal.mineraloccurrence;
 
+import org.auscope.portal.server.domain.filter.AbstractFilter;
+import org.auscope.portal.server.domain.filter.FilterBoundingBox;
+
 /**
  * Class that represents ogc:Filter markup for er:mine queries
- * 
+ *
  * @author Mat Wyatt
  * @version $Id$
  */
-public class MineFilter implements IFilter {
-    private String mineName;
+public class MineFilter extends AbstractFilter {
+    private String filterFragment;
 
     /**
-     * Given a mine name, this object will build a filter 
-     * to a wild card search for mine names
+     * Given a mine name, this object will build a filter to a wild card search
+     * for mine names
      *
-     * @param mineName the main name
+     * @param mineName
+     *            the main name
      */
     public MineFilter(String mineName) {
-        this.mineName = mineName;
+        // Check the NON-Feature Chained name - faster!
+        if (mineName != null && mineName.length() > 0) {
+        	// Geoserver bug - cant search on duplicate attributes -
+        	// once resolved delete fragment and change to this: SISS-912
+        	// this.filterFragment = this.generatePropertyIsLikeFragment("er:specification/er:Mine/gml:name", mineName);
+            this.filterFragment = this.generatePropertyIsLikeFragment("er:specification/er:Mine/er:mineName/er:MineName/er:mineName", mineName);
+        }
+        // Ensure a MFO query always returns a type mine!
+        else {
+            this.filterFragment = this.generatePropertyIsLikeFragment("er:specification/er:Mine/gml:name", "*");
+        }
     }
 
-
-    public String getFilterString() {
-        return  "        <ogc:Filter xmlns:er=\"urn:cgi:xmlns:GGIC:EarthResource:1.1\" \n" +
-                "                    xmlns:ogc=\"http://www.opengis.net/ogc\" \n" +
-                "                    xmlns:gml=\"http://www.opengis.net/gml\" \n" +
-                "                    xmlns:xlink=\"http://www.w3.org/1999/xlink\" \n" +
-                "                    xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">\n" +
-                "            <ogc:PropertyIsLike wildCard=\"*\" singleChar=\"#\" escapeChar=\"!\">\n" +
-                "                <ogc:PropertyName>er:mineName/er:MineName/er:mineName</ogc:PropertyName>\n" +
-                "                <ogc:Literal>" + mineName + "</ogc:Literal>\n" +
-                "            </ogc:PropertyIsLike>\n" +
-                "        </ogc:Filter>";
-
+    public String getFilterStringAllRecords() {
+        return this.generateFilter(this.filterFragment);
     }
-    
+
+    public String getFilterStringBoundingBox(FilterBoundingBox bbox) {
+        return this.generateFilter(
+                this.generateAndComparisonFragment(
+                        this.generateBboxFragment(bbox, "er:location"),
+                        this.filterFragment));
+    }
+
 }

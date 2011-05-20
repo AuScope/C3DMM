@@ -2,18 +2,20 @@ package org.auscope.portal.server.web.service;
 
 import java.util.ArrayList;
 
-import org.apache.log4j.Logger;
-
+import org.apache.commons.httpclient.HttpClient;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.auscope.portal.csw.CSWGetRecordResponse;
+import org.auscope.portal.csw.CSWMethodMakerGetDataRecords;
+import org.auscope.portal.csw.CSWOnlineResource;
+import org.auscope.portal.csw.CSWOnlineResource.OnlineResourceType;
 import org.auscope.portal.csw.CSWRecord;
 import org.auscope.portal.csw.CSWThreadExecutor;
 import org.auscope.portal.csw.ICSWMethodMaker;
-import org.auscope.portal.csw.CSWMethodMakerGetDataRecords;
-import org.auscope.portal.csw.CSWGetRecordResponse;
-
-import org.auscope.portal.server.web.service.HttpServiceCaller;
 import org.auscope.portal.server.util.Util;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 import org.w3c.dom.Document;
@@ -22,88 +24,164 @@ import org.w3c.dom.Document;
 /**
  * Provides some utility methods for accessing data from a CSW service
  *
- * @version $Id$
+ * @version $Id: CSWService.java 
  * TODO: create an interface, as this implementation does things like caching,
- * TODO: which is not desirable in all cases
+ * 		 which is not desirable in all cases
  */
 @Service
 public class CSWService {
-    private Logger logger = Logger.getLogger(getClass());
+    protected final Log log = LogFactory.getLog(getClass());
 
-    private CSWRecord[] dataRecords = new CSWRecord[0];
+    /**
+     * A utility class that groups useful information about a single cache for a single service URL
+     */
+    private class UrlCache implements Runnable{
+    	private CSWRecord[] cache;
+    	private long lastTimeUpdated;
+    	private CSWServiceItem serviceItem;
+    	private String lastCSWresponse;
+
+    	//These are cached for the run method
+    	private HttpServiceCaller serviceCaller;
+        private Util util;
+
+        //This isn't perfect, but it does the job we need it to
+        //This will stop multiple updates on different threads from running at the same time
+        private volatile boolean updateInProgress;
+
+    	public UrlCache(CSWServiceItem serviceItem, HttpServiceCaller serviceCaller, Util util) {
+    		this.serviceItem = serviceItem;
+    		this.cache = new CSWRecord[0];
+    		this.serviceCaller = serviceCaller;
+    		this.util = util;
+    	}
+
+    	public synchronized void setCache(CSWRecord[] cache, String lastCSWresponse) {
+    		this.cache = cache;
+    		this.lastCSWresponse = lastCSWresponse;
+    		this.lastTimeUpdated = System.currentTimeMillis();
+    	}
+
+    	public synchronized CSWRecord[] getCache() {
+    		return this.cache;
+    	}
+
+    	public synchronized long getLastTimeUpdated() {
+    		return this.lastTimeUpdated;
+    	}
+
+    	public synchronized String getlastCSWresponse() {
+    		return this.lastCSWresponse;
+    	}
+    	public boolean getUpdateInProgress(){
+    		return updateInProgress;
+    	}
+
+    	public void setUpdateInProgress(boolean updateInProgress){
+    		this.updateInProgress = updateInProgress;
+    	}
+
+
+    	public void run() {
+    		try {
+            	//This section is all "thread safe" because it uses all local variables (or rather its methods do)
+        		//It might be useful to mark this behaviour in the definition of the objects
+                ICSWMethodMaker getRecordsMethod = new CSWMethodMakerGetDataRecords(this.serviceItem.getServiceUrl());
+                HttpClient newClient = serviceCaller.getHttpClient();
+                String methodResponse =  serviceCaller.getMethodResponseAsString(getRecordsMethod.makeMethod(), newClient);
+
+                // TODO: Stupid CSW response are timestamped.
+                if (methodResponse.equals(this.getlastCSWresponse())) {
+                	throw new Exception(String.format("Cache identical - not rebuilding - '%1$s'"));
+                }
+                else {
+                	log.info(String.format("Update required for serviceName='%1$s'",this.serviceItem.getServiceUrl()));
+		            Document document = util.buildDomFromString(methodResponse);
+		            CSWRecord[] tempRecords = new CSWGetRecordResponse(document).getCSWRecords();
+		            //These records should also have a link back to their provider
+		            if (serviceItem.getRecordInformationUrl() != null && serviceItem.getRecordInformationUrl().length() > 0) {
+		                for (CSWRecord record : tempRecords) {
+		                    if (record.getFileIdentifier() != null && record.getFileIdentifier().length() > 0) {
+		                        String recordInfoUrl = serviceItem.getRecordInformationUrl().replace(
+		                        		serviceItem.PLACEHOLDER_RECORD_ID, record.getFileIdentifier());
+		                        record.setRecordInfoUrl(recordInfoUrl);
+		                    }
+		                }
+		            }
+
+		            //This is where we need to avoid race conditions
+		            this.setCache(tempRecords, methodResponse);
+		            log.info(String.format("Update completed for serviceName='%1$s'",this.serviceItem.getServiceUrl()));
+                }
+
+            } catch (Exception e) {
+                log.error(e);
+            }
+            finally {
+            	//It is possible that another thread can startup before this thread exits completely
+            	//But it won't be a problem. The main issue is to stop MULTIPLE updates firing at once
+            	//and hammering an external resource, at this point all communications with the external
+            	//source have finished.
+            	this.updateInProgress = false;
+                log.info("Update completed for "+this.serviceItem.getServiceUrl());
+            }
+    	}
+    }
+
+    /**
+     * Each element in this list represents a cache retrieved from a single serviceURL
+     */
+    private UrlCache[]  cache;
     private HttpServiceCaller serviceCaller;
-    private String serviceUrl;
-    private CSWThreadExecutor executor;        
+    private CSWThreadExecutor executor;
     private Util util;
-    private long lastUpdated = 0;
-    private static final int UPDATE_INTERVAL = 300000;
+    private static final int UPDATE_INTERVAL = 600000;
 
     @Autowired
     public CSWService(CSWThreadExecutor executor,
                       HttpServiceCaller serviceCaller,
-                      Util util) throws Exception {
+                      Util util,
+                      @Qualifier(value = "cswServiceList") ArrayList cswServiceList) throws Exception {
 
         this.executor = executor;
         this.serviceCaller = serviceCaller;
-        this.util = util;        
+        this.util = util;
+
+        this.cache = new UrlCache[cswServiceList.size()];
+    	for (int i = 0; i < cswServiceList.size(); i++) {
+    		cache[i] = new UrlCache((CSWServiceItem) cswServiceList.get(i), serviceCaller, util);
+    	}
     }
 
     /**
-     * ServiceURL setter
-     * @param serviceUrl
-     */
-    public void setServiceUrl(String serviceUrl) {
-        this.serviceUrl = serviceUrl;
-    }
-
-    /**
-     * Checks to see if the time interval from the last update has passed. If so, then update the cached records.
+     * Starts a new update thread for each service URL that has no records OR hasn't been updated in the last UPDATE_INTERVAL
      * @throws Exception
      */
     public void updateRecordsInBackground() throws Exception {
-        // Update the cache if older that 5 mins or there are no records
-        if (System.currentTimeMillis() - lastUpdated > UPDATE_INTERVAL || dataRecords.length == 0) {
-            executor.execute(new Runnable() {
-                public void run() {
-                    updateCSWRecords();
-                }
-            });
-            lastUpdated = System.currentTimeMillis();
-        }
+    	//Update every service URL
+    	for (int i = 0; i < cache.length; i++) {
+    		UrlCache currentCache = cache[i];
+
+            // Update the cache if it's not already updating
+    		if (!currentCache.getUpdateInProgress()) {
+    			//Update cache each UPDATE_INTERVAL mins.
+    			if ((System.currentTimeMillis() - currentCache.getLastTimeUpdated() > UPDATE_INTERVAL)) {
+	            	currentCache.setUpdateInProgress(true);
+	                executor.execute(currentCache);
+	            }
+    		}
+    	}
     }
 
-    /**
-     * Updates the cached data records from the CSW service.
-     */
-    public void updateCSWRecords() {
-        try {
-            ICSWMethodMaker getRecordsMethod = new CSWMethodMakerGetDataRecords(serviceUrl);
-
-            Document document = util.buildDomFromString(serviceCaller.getMethodResponseAsString(getRecordsMethod.makeMethod(), serviceCaller.getHttpClient()));
-
-            CSWRecord[] tempRecords = new CSWGetRecordResponse(document).getCSWRecords();
-
-            setDatarecords(tempRecords);
-        } catch (Exception e) {
-            logger.error(e);
-        }
-    }
 
     /**
-     * Assigns the cached data records.
-     * @param records
-     */
-    private synchronized void setDatarecords(CSWRecord[] records) {
-        this.dataRecords = records;
-    }
+     * Returns every record in this cache (Even records with empty service Url's)
 
-    /**
-     * Returns the entire cached record set
      * @return
      * @throws Exception
      */
-    public CSWRecord[] getDataRecords() throws Exception {
-        return dataRecords;
+    public CSWRecord[] getAllRecords() throws Exception {
+    	return getFilteredRecords(null);
     }
 
     /**
@@ -112,18 +190,7 @@ public class CSWService {
      * @throws Exception
      */
     public CSWRecord[] getWMSRecords() throws Exception {
-        CSWRecord[] records = getDataRecords();
-
-         ArrayList<CSWRecord> wfsRecords = new ArrayList<CSWRecord>();
-
-        for(CSWRecord rec : records) {
-            if(rec.getOnlineResourceProtocol() != null)
-                if(rec.getOnlineResourceProtocol().contains("WMS") && !rec.getServiceUrl().equals("")) {
-                    wfsRecords.add(rec);
-                }
-        }
-
-        return wfsRecords.toArray(new CSWRecord[wfsRecords.size()]);
+        return getFilteredRecords(OnlineResourceType.WMS);
     }
 
     /**
@@ -132,83 +199,65 @@ public class CSWService {
      * @throws Exception
      */
     public CSWRecord[] getWCSRecords() throws Exception {
-        CSWRecord[] records = getDataRecords();
-
-         ArrayList<CSWRecord> wcsRecords = new ArrayList<CSWRecord>();
-
-        for(CSWRecord rec : records) {
-            if(rec.getOnlineResourceProtocol() != null)
-                if(rec.getOnlineResourceProtocol().contains("WCS") && !rec.getServiceUrl().equals("")) {
-                    wcsRecords.add(rec);
-                }
-        }
-
-        return wcsRecords.toArray(new CSWRecord[wcsRecords.size()]);
+        return getFilteredRecords(OnlineResourceType.WCS);
     }
 
-    /**
-     * Returns only WMS data records of a given organization
-     * @return
-     * @throws Exception
-     */
-    public CSWRecord[] getWMSRecordsOfOrg(String org) throws Exception {
-        CSWRecord[] records = getDataRecords();
-
-         ArrayList<CSWRecord> wfsRecords = new ArrayList<CSWRecord>();
-
-        for(CSWRecord rec : records) {
-            if(rec.getOnlineResourceProtocol() != null)
-                if(		rec.getOnlineResourceProtocol().contains("WMS")
-                	&& !rec.getServiceUrl().equals("")
-            		&&  rec.getContactOrganisation().equals(org)) {
-                	
-                    wfsRecords.add(rec);
-                }
-        }
-
-        return wfsRecords.toArray(new CSWRecord[wfsRecords.size()]);
-    }
-    
     /**
      * Returns only WFS data records
      * @return
      * @throws Exception
      */
     public CSWRecord[] getWFSRecords() throws Exception {
-        CSWRecord[] records = getDataRecords();
-
-        ArrayList<CSWRecord> wfsRecords = new ArrayList<CSWRecord>();
-
-        for(CSWRecord rec : records) {
-            if(rec.getOnlineResourceProtocol() != null)
-                if(rec.getOnlineResourceProtocol().contains("WFS") && !rec.getServiceUrl().equals("")) {
-                    wfsRecords.add(rec);
-                }
-        }
-
-        return wfsRecords.toArray(new CSWRecord[wfsRecords.size()]);
+        return getFilteredRecords(OnlineResourceType.WFS);
     }
 
     /**
-     * Returns only WFS data records for a given feature typeName
-     * @param featureTypeName
+     * Returns a filtered list of records from this cache
+     * @param types
      * @return
      * @throws Exception
      */
-    public CSWRecord[] getWFSRecordsForTypename(String featureTypeName) throws Exception {
-        CSWRecord[] records = getDataRecords();
-        ArrayList<CSWRecord> wfsRecords = new ArrayList<CSWRecord>();
+    public synchronized CSWRecord[] getFilteredRecords(
+    		CSWOnlineResource.OnlineResourceType... types) throws Exception {
 
-        for(CSWRecord rec : records) {
-            if(rec.getOnlineResourceProtocol() != null)
-                if (rec.getOnlineResourceProtocol().contains("WFS") && 
-                    !rec.getServiceUrl().equals("") && 
-                    featureTypeName.equals(rec.getOnlineResourceName())) 
-                {
-                    wfsRecords.add(rec);
+        ArrayList<CSWRecord> records = new ArrayList<CSWRecord>();
+
+        //Iterate EVERY record for EVERY service URL
+        for (int i = 0; i < cache.length; i++)
+        {
+	    	for(CSWRecord rec : cache[i].getCache()) {
+            	if ((types == null || rec.containsAnyOnlineResource(types))) {
+            		records.add(rec);
                 }
+            }
+        }
+
+        return records.toArray(new CSWRecord[records.size()]);
+    }
+    
+    /**
+     * Returns only WMS data records of a given organisation
+     * @return
+     * @throws Exception
+     */
+    public CSWRecord[] getWMSRecordsOfOrg(String org) throws Exception {
+        CSWRecord[] records = getWMSRecords();
+        ArrayList<CSWRecord> wfsRecords = new ArrayList<CSWRecord>();   
+                
+        for(CSWRecord rec : records) {
+        	CSWOnlineResource[] resources = rec.getOnlineResources();
+        		String contactOrganisation = rec.getContactOrganisation();
+        		for(CSWOnlineResource resource : resources) {        			
+        			if(CSWOnlineResource.OnlineResourceType.WMS == resource.getType()
+        					&& !"".equals(resource.getLinkage())
+        					&& org.equals(contactOrganisation)) {
+        				wfsRecords.add(rec);
+        				break;
+        			}
+        		}        	        	
         }
 
         return wfsRecords.toArray(new CSWRecord[wfsRecords.size()]);
     }
+    
 }

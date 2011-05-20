@@ -1,294 +1,262 @@
 package org.auscope.portal.mineraloccurrence;
 
-import java.util.Collection;
+import java.util.ArrayList;
+import java.util.EnumSet;
+import java.util.List;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.auscope.portal.server.domain.filter.AbstractFilter;
+import org.auscope.portal.server.domain.filter.FilterBoundingBox;
 
 /**
- * User: Michael Stegherr
- * Date: 26/03/2009
- * Time: 5:18:28 PM
+ * Class that represents ogc:Filter markup for er:MineralOccurrence queries
+ *
+ * @author Jarek Sanders
+ * @version $Id$
  */
-public class MineralOccurrenceFilter implements IFilter {
-    // TODO: endowment to be commented in again, when data model (mineraloccurrence ml) includes this 
-    public enum MeasureType { ENDOWMENT, RESOURCE, RESERVE, ANY }
-    
-    private Collection<Commodity> commodities;
-    private MeasureType measureType;
+@SuppressWarnings("deprecation")
+public class MineralOccurrenceFilter extends AbstractFilter {
+
+    // TODO: Include ENDOWMENT when GeoServers accept this element
+    //       (...you may just just put it b/w RESERVE and RESOURCE)
+
+
+    public enum MeasureTypes { ENDOWMENT, RESERVE, RESOURCE, ANY, NONE }
+
+    /** Log object for this class. */
+    protected final Log log = LogFactory.getLog(getClass());
+
+    private String commodityName;
+    private MeasureTypes measureType;
     private String minOreAmount;
     private String minOreAmountUOM;
     private String minCommodityAmount;
     private String minCommodityAmountUOM;
-    private String cutOffGrade;
-    private String cutOffGradeUOM;
+    private int paramsCount;
+    private String filterStr;
 
-    public MineralOccurrenceFilter(Collection<Commodity> commodities,
-                                   String measureType,
-                                   String minOreAmount,
-                                   String minOreAmountUOM,
-                                   String minCommodityAmount,
-                                   String minCommodityAmountUOM,
-                                   String cutOffGrade,
-                                   String cutOffGradeUOM) {
-
-        this.commodities = commodities;
+    /**
+     * C'tor
+     */
+    public MineralOccurrenceFilter( String commodityName,
+                                    String measureType,
+                                    String minOreAmount,
+                                    String minOreAmountUOM,
+                                    String minCommodityAmount,
+                                    String minCommodityAmountUOM )
+    {
+        this.commodityName         = commodityName == null ? "" : commodityName;
         this.minOreAmount          = minOreAmount;
         this.minOreAmountUOM       = minOreAmountUOM;
         this.minCommodityAmount    = minCommodityAmount;
         this.minCommodityAmountUOM = minCommodityAmountUOM;
-        this.cutOffGrade           = cutOffGrade;
-        this.cutOffGradeUOM        = cutOffGradeUOM;
-        
-        // parse strings from combobox into enum values
-        if (measureType.equals("Endowment")) {
-            this.measureType = MeasureType.ENDOWMENT;
-        } else if (measureType.equals("Resource")) {
-            this.measureType = MeasureType.RESOURCE;
+
+        this.measureType           = getMeasureType(measureType);
+        this.paramsCount           = getParameterCount();
+        this.filterStr             = makeFilter();
+    }
+
+    @Override
+    public String getFilterStringAllRecords() {
+        return this.generateFilter(filterStr);
+    }
+
+    @Override
+    public String getFilterStringBoundingBox(FilterBoundingBox bbox) {
+
+
+        return this.generateFilter(
+                this.generateAndComparisonFragment(
+                        this.generateBboxFragment(bbox, "gsml:shape"),
+                        this.filterStr));
+    }
+
+    /**
+     * Constructs WFS MineralOccurence filter query string based
+     * on user parameters.
+     * @return Filter query string for sending as a POST request
+     */
+    private String makeFilter() {
+
+        // Case 1. Get All Query
+        if ( (this.measureType == MeasureTypes.NONE) && commodityName.isEmpty()) {
+            return "";
+        }
+
+        // Case 2. Commodities Only Query
+        else if ( (this.measureType == MeasureTypes.NONE) && (!commodityName.isEmpty()) ) {
+            return this.generatePropertyIsEqualToFragment("gsml:specification/er:MineralOccurrence/er:commodityDescription/er:Commodity/er:commodityName", commodityName);
+        }
+
+        // Case 3. Amount Only Query
+        else if ( (this.measureType != MeasureTypes.NONE) && commodityName.isEmpty() ) {
+
+            // Single measure
+            if (this.measureType != MeasureTypes.ANY) {
+                if (paramsCount == 0) {
+                    return this.generatePropertyIsLikeFragment("gsml:specification/er:MineralOccurrence/er:oreAmount/"+ getMeasureTypeTag(this.measureType) +"/er:measureDetails/er:CommodityMeasure/er:commodityOfInterest/er:Commodity/er:commodityName", "*");
+                } else if(paramsCount > 0) {
+                    return this.generateParametersFragment(getMeasureTypeTag(this.measureType));
+                } else {
+                    return "";
+                }
+            }
+            // Multiple measures - ANY
+            else if (this.measureType == MeasureTypes.ANY) {
+                List<String> fragments = new ArrayList<String>();
+
+                if (paramsCount == 0) {
+                    for (MeasureTypes measure : EnumSet.range(MeasureTypes.RESERVE, MeasureTypes.RESOURCE)) {
+                        fragments.add(this.generatePropertyIsLikeFragment("gsml:specification/er:MineralOccurrence/er:oreAmount/"+ getMeasureTypeTag(measure) +"/er:measureDetails/er:CommodityMeasure/er:commodityOfInterest/er:Commodity/er:commodityName", "*"));
+                    }
+                } else if(paramsCount > 0) {
+                    for (MeasureTypes measure : EnumSet.range(MeasureTypes.RESERVE, MeasureTypes.RESOURCE)) {
+                        fragments.add(this.generateParametersFragment(getMeasureTypeTag(measure)));
+                    }
+                }
+
+                return this.generateOrComparisonFragment(fragments.toArray(new String[fragments.size()]));
+            }
+        }
+
+        // Case 4. Commodity + Amount Query
+        else if ( (this.measureType != MeasureTypes.NONE) && !commodityName.isEmpty() ) {
+
+            // Single Measure
+            if (this.measureType != MeasureTypes.ANY) {
+                if (this.paramsCount == 0) {
+                    return this.generatePropertyIsEqualToFragment("gsml:specification/er:MineralOccurrence/er:oreAmount/"+ getMeasureTypeTag(this.measureType) +"/er:measureDetails/er:CommodityMeasure/er:commodityOfInterest/er:Commodity/er:commodityName", commodityName);
+                } else {
+                    return this.generateCommodityAndParametersFragment(commodityName,getMeasureTypeTag(this.measureType));
+                }
+            }
+            // Multiple Measures - ANY
+            else if (this.measureType == MeasureTypes.ANY) {
+                List<String> fragments = new ArrayList<String>();
+                if (this.paramsCount == 0) {
+                    for (MeasureTypes measure : EnumSet.range(MeasureTypes.RESERVE, MeasureTypes.RESOURCE)) {
+                        fragments.add(this.generatePropertyIsEqualToFragment("gsml:specification/er:MineralOccurrence/er:oreAmount/"+getMeasureTypeTag(measure)+"/er:measureDetails/er:CommodityMeasure/er:commodityOfInterest/er:Commodity/er:commodityName", commodityName));
+                    }
+                } else if (this.paramsCount > 0) {
+                    for (MeasureTypes measure : EnumSet.range(MeasureTypes.RESERVE, MeasureTypes.RESOURCE)) {
+                        fragments.add(this.generateCommodityAndParametersFragment(commodityName, getMeasureTypeTag(measure)));
+                    }
+                }
+
+                return this.generateOrComparisonFragment(fragments.toArray(new String[fragments.size()]));
+            }
+        }
+
+        return "";
+    }
+
+
+    /*
+     * Appends search commodity and amount parameters entered by user
+     */
+    private String generateCommodityAndParametersFragment(String commodityName,  String measure) {
+        List<String> fragments = new ArrayList<String>();
+
+        fragments.add(this.generatePropertyIsEqualToFragment("gsml:specification/er:MineralOccurrence/er:oreAmount/"+measure+"/er:measureDetails/er:CommodityMeasure/er:commodityOfInterest/er:Commodity/er:commodityName", commodityName));
+
+        if (!this.minOreAmount.isEmpty()) {
+            fragments.add(this.generatePropertyIsGreaterThanOrEqualTo("gsml:specification/er:MineralOccurrence/er:oreAmount/"+measure+"/er:ore/gsml:CGI_NumericValue/gsml:principalValue", this.minOreAmount));
+        }
+        if (!this.minOreAmountUOM.isEmpty()) {
+            fragments.add(this.generatePropertyIsEqualToFragment("gsml:specification/er:MineralOccurrence/er:oreAmount/"+measure+"/er:ore/gsml:CGI_NumericValue/gsml:principalValue/@uom", this.minOreAmountUOM));
+        }
+        if (!this.minCommodityAmount.isEmpty()) {
+            fragments.add(this.generatePropertyIsGreaterThanOrEqualTo("gsml:specification/er:MineralOccurrence/er:oreAmount/"+measure+"/er:measureDetails/er:CommodityMeasure/er:commodityAmount/gsml:CGI_NumericValue/gsml:principalValue", this.minCommodityAmount));
+        }
+        if (!this.minCommodityAmountUOM.isEmpty()) {
+            fragments.add(this.generatePropertyIsEqualToFragment("gsml:specification/er:MineralOccurrence/er:oreAmount/"+measure+"/er:measureDetails/er:CommodityMeasure/er:commodityAmount/gsml:CGI_NumericValue/gsml:principalValue/@uom", this.minCommodityAmountUOM));
+        }
+
+        return this.generateAndComparisonFragment(fragments.toArray(new String[fragments.size()]));
+    }
+
+
+    /*
+     * Generates a large <ogc:And> fragment consisiting of all the parameters specified
+     */
+    private String generateParametersFragment(String measure) {
+        List<String> fragments = new ArrayList<String>();
+
+        if (!this.minOreAmount.isEmpty()) {
+            fragments.add(this.generatePropertyIsGreaterThanOrEqualTo("gsml:specification/er:MineralOccurrence/er:oreAmount/"+measure+"/er:ore/gsml:CGI_NumericValue/gsml:principalValue", this.minOreAmount));
+        }
+        if (!this.minOreAmountUOM.isEmpty()) {
+            fragments.add(this.generatePropertyIsEqualToFragment("gsml:specification/er:MineralOccurrence/er:oreAmount/"+measure+"/er:ore/gsml:CGI_NumericValue/gsml:principalValue/@uom", this.minOreAmountUOM));
+        }
+        if (!this.minCommodityAmount.isEmpty()) {
+            fragments.add(this.generatePropertyIsEqualToFragment("gsml:specification/er:MineralOccurrence/er:oreAmount/"+measure+"/er:measureDetails/er:CommodityMeasure/er:commodityAmount/gsml:CGI_NumericValue/gsml:principalValue", this.minCommodityAmount));
+        }
+        if (!this.minCommodityAmountUOM.isEmpty()) {
+            fragments.add(this.generatePropertyIsEqualToFragment("gsml:specification/er:MineralOccurrence/er:oreAmount/"+measure+"/er:measureDetails/er:CommodityMeasure/er:commodityAmount/gsml:CGI_NumericValue/gsml:principalValue/@uom", this.minCommodityAmountUOM));
+        }
+
+        return this.generateAndComparisonFragment(fragments.toArray(new String[fragments.size()]));
+    }
+
+
+    /*
+     * Converts measure type string displayed in combobox into respective
+     * MeasureTypes enumerated value
+     */
+    private MeasureTypes getMeasureType(String measureType) {
+
+    	if (measureType == null) {
+    		return MeasureTypes.NONE;
+    	}
+    	
+        if (measureType.equals("Resource")) {
+            return MeasureTypes.RESOURCE;
         } else if (measureType.equals("Reserve")) {
-            this.measureType = MeasureType.RESERVE;
+            return MeasureTypes.RESERVE;
+        } else if (measureType.equals("Endowment")) {
+            return MeasureTypes.ENDOWMENT;
+        } else if (measureType.equals("Any")) {
+            return MeasureTypes.ANY;
         } else {
-            // anything else will query for every measure type
-            this.measureType = MeasureType.ANY;
+            return MeasureTypes.NONE;
         }
     }
 
-    /**
-     * Build the query string based on given properties
-     * @return String for sending as a POST request
+
+    /*
+     * Returns number of Amount Measure parameters submitted by user
      */
-    public String getFilterString() {                  //TODO: this sucks! use geotools api to build queries...
-        StringBuffer queryString = new StringBuffer();
+    private int getParameterCount() {
+        int count = 0;
 
-        queryString.append("<ogc:Filter xmlns:er=\"urn:cgi:xmlns:GGIC:EarthResource:1.1\"\n" +
-                "            xmlns:gsml=\"urn:cgi:xmlns:CGI:GeoSciML:2.0\"\n" +
-                "            xmlns:ogc=\"http://www.opengis.net/ogc\"\n" +
-                "            xmlns:gml=\"http://www.opengis.net/gml\"\n" +
-                "            xmlns:xlink=\"http://www.w3.org/1999/xlink\"\n" +
-                "            xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">\n");        
+        if ((this.minOreAmount != null) && (!this.minOreAmount.isEmpty()))
+            count++;
+        if ((this.minOreAmountUOM != null) && (!this.minOreAmountUOM.isEmpty()))
+            count++;
+        if ((this.minCommodityAmount != null) && (!this.minCommodityAmount.isEmpty()))
+            count++;
+        if ((this.minCommodityAmountUOM != null) && (!this.minCommodityAmountUOM.isEmpty()))
+            count++;
 
-
-        if(checkMany())
-            queryString.append("      <ogc:And>\n");
-
-        
-        if(this.commodities != null)
-        {
-            // if commodities, filter that
-            if( commodities.size()!=0 )
-            {
-                if( commodities.size()>1 )
-                    queryString.append("            <ogc:Or>\n");
-                
-                for( Commodity commodity : commodities ) {
-                    queryString.append("                <ogc:PropertyIsEqualTo>\n" +
-                                       "                    <ogc:PropertyName>gml:name</ogc:PropertyName>\n" +
-                                       "                    <ogc:Literal>"+commodity.getSource()+"</ogc:Literal>\n" +
-                                       "                </ogc:PropertyIsEqualTo>\n");
-                }
-                
-                if( commodities.size()>1 )
-                    queryString.append("            </ogc:Or>\n");
-            }
-        }
-
-        
-        if (!this.minOreAmount.equals(""))
-        {
-            if(this.measureType == MeasureType.ANY)
-            {
-                queryString.append("            <ogc:Or>\n");
-                
-                for(MeasureType t : MeasureType.values()) {
-                    //TODO: Remove check for ENDOWMENT when services will support it
-                    if(t!=MeasureType.ANY && t!=MeasureType.ENDOWMENT) { 
-                        queryString.append(createOreAmountQuery(t));
-                    }
-                }
-                queryString.append("            </ogc:Or>\n");
-            }
-            else
-                queryString.append(createOreAmountQuery(this.measureType));
-        }
-        
-        
-        if(!this.minCommodityAmount.equals(""))
-        {
-            if(this.measureType == MeasureType.ANY)
-            {
-                queryString.append("            <ogc:Or>\n");
-                  
-                for(MeasureType t : MeasureType.values()) {
-                    //TODO: Remove check for ENDOWMENT when services will support it
-                    if(t!=MeasureType.ANY && t!=MeasureType.ENDOWMENT) {
-                        queryString.append(createCommodityAmountQuery(t));
-                    }
-                }
-                queryString.append("            </ogc:Or>\n");
-            }
-            else
-                queryString.append(createCommodityAmountQuery(this.measureType));
-        }
-
-        if(!this.cutOffGrade.equals(""))
-        {
-            if(this.measureType == MeasureType.ANY)
-            {
-                queryString.append("                 <ogc:Or>\n");
-                
-                for(MeasureType t : MeasureType.values())
-                    if(t!=MeasureType.ANY)
-                        queryString.append(createCutOffGradeQuery(t));
-                
-                queryString.append("                 </ogc:Or>\n");
-            }
-            else
-                queryString.append(createCutOffGradeQuery(this.measureType));            
-        }
-
-        if(checkMany())
-            queryString.append("      </ogc:And>\n");
-
-        queryString.append("</ogc:Filter>\n");
-
-        return queryString.toString();
-
+        log.debug("Returning count: " + count);
+        return count;
     }
 
-    /**
-     * Returns a PropertyIsGreaterThan query for ore amount
-     * @param type the desired measure type
-     * @return the string for using in a filter query
-     */
-    private String createOreAmountQuery(MeasureType type)
-    {
-        StringBuffer queryString = new StringBuffer();
-        
-        if (this.minOreAmountUOM.equals("")) {
-            queryString.append("            <ogc:PropertyIsGreaterThan>\n");
-            queryString.append("                <ogc:PropertyName>er:oreAmount/");
-            queryString.append(                      getMeasureTypeTag(type));
-            queryString.append(                      "/er:ore/gsml:CGI_NumericValue/gsml:principalValue</ogc:PropertyName>\n");
-            queryString.append("                <ogc:Literal>"+this.minOreAmount+"</ogc:Literal>\n");
-            queryString.append("            </ogc:PropertyIsGreaterThan>\n");
-        } else {
-            queryString.append("            <ogc:And>\n");
-            
-            queryString.append("                <ogc:PropertyIsEqualTo>\n");
-            queryString.append("                    <ogc:PropertyName>er:oreAmount/");
-            queryString.append(                         getMeasureTypeTag(type));
-            queryString.append(                         "/er:ore/gsml:CGI_NumericValue/gsml:principalValue/@uom</ogc:PropertyName>\n");
-            queryString.append("                    <ogc:Literal>"+this.minOreAmountUOM+"</ogc:Literal>\n");
-            queryString.append("                </ogc:PropertyIsEqualTo>\n");
-            
-            queryString.append("                <ogc:PropertyIsGreaterThan>\n");
-            queryString.append("                    <ogc:PropertyName>er:oreAmount/");
-            queryString.append(                         getMeasureTypeTag(type));
-            queryString.append(                         "/er:ore/gsml:CGI_NumericValue/gsml:principalValue</ogc:PropertyName>\n");
-            queryString.append("                    <ogc:Literal>"+this.minOreAmount+"</ogc:Literal>\n");
-            queryString.append("                </ogc:PropertyIsGreaterThan>\n");
-            
-            queryString.append("            </ogc:And>\n");
-        }        
-
-        return queryString.toString();
-    }
-    
-    /**
-     * Returns a PropertyIsGreaterThan query for commodity amount
-     * @param type the desired measure type
-     * @return the string for using in a filter query
-     */
-    private String createCommodityAmountQuery(MeasureType type)
-    {
-        StringBuffer queryString = new StringBuffer();
-        
-        if (this.minCommodityAmountUOM.equals("")) {
-            queryString.append("            <ogc:PropertyIsGreaterThan>\n");            
-            queryString.append("                <ogc:PropertyName>er:oreAmount/");
-            queryString.append(                     getMeasureTypeTag(type));
-            queryString.append(                     "/er:measureDetails/er:CommodityMeasure/er:commodityAmount/gsml:CGI_NumericValue/gsml:principalValue</ogc:PropertyName>\n");
-            queryString.append("                <ogc:Literal>"+this.minCommodityAmount+"</ogc:Literal>\n");
-            queryString.append("            </ogc:PropertyIsGreaterThan>\n");
-        } else {
-            queryString.append("            <ogc:And>\n");
-            
-            queryString.append("                <ogc:PropertyIsEqualTo>\n");
-            queryString.append("                    <ogc:PropertyName>er:oreAmount/");
-            queryString.append(                         getMeasureTypeTag(type));
-            queryString.append(                         "/er:measureDetails/er:CommodityMeasure/er:commodityAmount/gsml:CGI_NumericValue/gsml:principalValue/@uom</ogc:PropertyName>\n");
-            queryString.append("                    <ogc:Literal>"+this.minCommodityAmountUOM+"</ogc:Literal>\n");
-            queryString.append("                </ogc:PropertyIsEqualTo>\n");
-            
-            queryString.append("            <ogc:PropertyIsGreaterThan>\n");            
-            queryString.append("                <ogc:PropertyName>er:oreAmount/");
-            queryString.append(                     getMeasureTypeTag(type));
-            queryString.append(                     "/er:measureDetails/er:CommodityMeasure/er:commodityAmount/gsml:CGI_NumericValue/gsml:principalValue</ogc:PropertyName>\n");
-            queryString.append("                <ogc:Literal>"+this.minCommodityAmount+"</ogc:Literal>\n");
-            queryString.append("            </ogc:PropertyIsGreaterThan>\n");
-            
-            queryString.append("            </ogc:And>\n");
-        }
-        
-        return queryString.toString();
-    }
-            
-    
-    /**
-     * Returns a PropertyIsGreaterThan query for cut off grade
-     * @param type the desired measure type
-     * @return the string for using in a filter query
-     */
-    private String createCutOffGradeQuery(MeasureType type)
-    {
-        return "                <ogc:And>" +
-               "                   <ogc:PropertyIsEqualTo>\n" +
-               "                      <ogc:PropertyName>er:oreAmount/" + getMeasureTypeTag(type) +
-               "/er:measureDetails/er:CommodityMeasure/er:cutOffGrade/gsml:CGI_NumericValue/gsml:principalValue/@uom</ogc:PropertyName>\n" +
-               "                      <ogc:Literal>"+this.cutOffGradeUOM+"</ogc:Literal>\n" +
-               "                   </ogc:PropertyIsEqualTo>" +
-               "                   <ogc:PropertyIsGreaterThan>\n" +
-               "                      <ogc:PropertyName>er:oreAmount/" + getMeasureTypeTag(type) +            
-               "/er:measureDetails/er:CommodityMeasure/er:cutOffGrade/gsml:CGI_NumericValue/gsml:principalValue</ogc:PropertyName>\n" +
-               "                      <ogc:Literal>"+this.cutOffGrade+"</ogc:Literal>\n" +
-               "                   </ogc:PropertyIsGreaterThan>" +
-               "                </ogc:And>";
-    }
 
     /**
      * Returns the measure type tag for building up the filter property name
      * @param type the measure type
      * @return measure type tag as a String
      */
-    public String getMeasureTypeTag(MeasureType type) {
+    public String getMeasureTypeTag(MeasureTypes type) {
         switch (type) {
-            case ENDOWMENT : return "er:Endowment";               
-            case RESOURCE  : return "er:Resource";              
+            case ENDOWMENT : return "er:Endowment";
+            case RESOURCE  : return "er:Resource";
             case RESERVE   : return "er:Reserve";
-            // TODO shouldn't go there, error handling?            
-            default        : return ""; 
+            default        : return ""; // Shouldn't go here
         }
     }
 
-    /**
-     * Checks if more than one query parameters have a value.
-     * @return true, if more than one parameter is found
-     */
-    private boolean checkMany() {
-        int howManyHaveaValue = 0;
-
-        if(this.commodities != null) {
-            if(!this.commodities.isEmpty())
-                howManyHaveaValue++;
-        }
-        if(!this.minOreAmount.equals(""))
-            howManyHaveaValue++;
-        if(!this.minCommodityAmount.equals(""))
-            howManyHaveaValue++;
-        if(!this.cutOffGrade.equals(""))
-            howManyHaveaValue++;
-
-        if(howManyHaveaValue >= 2)
-            return true;
-
-        return false;
-    }
 
 }

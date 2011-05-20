@@ -12,6 +12,23 @@
         <connection>scm:svn:https://svn.auscope.org/subversion/AuScopePortal/C3DMM/trunk</connection>
         <developerConnection>scm:svn:https://svn.auscope.org/subversion/AuScopePortal/C3DMM/trunk</developerConnection>
     </scm>
+
+    <!-- Build Configuration -->
+    <organization>
+    	<name>AuScope</name>
+    	<url>http://www.auscope.org</url>
+    </organization>
+
+    <!-- Project properties -->
+    <properties>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <jetty.version>6.1.25</jetty.version>
+        <log4j.version>1.2.16</log4j.version>
+        <spring.version>3.0.5.RELEASE</spring.version>
+        <spring.security.version>3.0.5.RELEASE</spring.security.version>
+        <geotools.version>2.6.5</geotools.version>
+    </properties>
+
     <build>
         <finalName>C3DMM-Portal</finalName>
         <plugins>
@@ -164,16 +181,7 @@
         </repository>
     </repositories>
 
-    <!-- Project properties -->
-    <properties>
-		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <jetty.version>6.1.25</jetty.version>
-        <log4j.version>1.2.16</log4j.version>
-        <spring.version>3.0.5.RELEASE</spring.version>
-        <spring.security.version>3.0.5.RELEASE</spring.security.version>
-        <geotools.version>2.6.5</geotools.version>
-    </properties>
-
+    <!-- Dependencies -->
     <dependencies>
         <!-- Servlets 2.4 - JSTL 1.1 -->
         <dependency>
@@ -193,6 +201,18 @@
             <version>1.1.2</version>
         </dependency>
 
+        <!-- Spring framework -->
+        <!--
+        Core utilities used by other modules.
+        Define this if you use Spring Utility APIs
+        (org.springframework.core.*/org.springframework.util.*)
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-core</artifactId>
+            <version>${spring.version}</version>
+            <scope>compile</scope>
+        </dependency>
+        -->
         <!--
         Bean Factory and JavaBeans utilities (depends on spring-core)
         Define this if you use Spring Bean APIs (org.springframework.beans.*)
@@ -240,49 +260,21 @@
             <groupId>org.springframework</groupId>
             <artifactId>spring-webmvc</artifactId>
             <version>${spring.version}</version>
+            <scope>compile</scope>
         </dependency>
-        <dependency>
-            <groupId>org.springframework.security</groupId>
-            <artifactId>spring-security-core</artifactId>
-            <version>${spring.security.version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.springframework</groupId>
-                    <artifactId>spring-core</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.springframework</groupId>
-                    <artifactId>spring-support</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.security</groupId>
-            <artifactId>spring-security-taglibs</artifactId>
-            <version>${spring.security.version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.springframework</groupId>
-                    <artifactId>spring-web</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-orm</artifactId>
-            <version>${spring.version}</version>
-        </dependency>
+
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-mock</artifactId>
             <version>2.0.8</version>
         </dependency>
-		<dependency>
-			<groupId>net.sf.json-lib</groupId>
-			<artifactId>json-lib</artifactId>
-			<version>2.4</version>
-			<classifier>jdk15</classifier>
-		</dependency>
+
+        <dependency>
+            <groupId>net.sf.json-lib</groupId>
+            <artifactId>json-lib</artifactId>
+            <version>2.2.3</version>
+            <classifier>jdk15</classifier>
+        </dependency>
         <dependency>
             <groupId>org.geotools</groupId>
             <artifactId>gt-wfs</artifactId>
@@ -302,17 +294,36 @@
             <groupId>RestProxy</groupId>
             <artifactId>RestProxy</artifactId>
             <version>1.1</version>
+            <scope>runtime</scope>
         </dependency>
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
-            <version>4.8.2</version>
-            <scope>test</scope>
+            <version>4.5</version>
         </dependency>
         <dependency>
             <groupId>log4j</groupId>
             <artifactId>log4j</artifactId>
             <version>${log4j.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>javax.mail</groupId>
+                    <artifactId>mail</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>javax.jms</groupId>
+                    <artifactId>jms</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.sun.jdmk</groupId>
+                    <artifactId>jmxtools</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.sun.jmx</groupId>
+                    <artifactId>jmxri</artifactId>
+                </exclusion>
+            </exclusions>
+            <scope>runtime</scope>
         </dependency>
         <dependency>
             <groupId>net.jsunit</groupId>
@@ -352,7 +363,7 @@
         <dependency>
             <groupId>org.objenesis</groupId>
             <artifactId>objenesis</artifactId>
-            <version>1.2</version>
+            <version>1.0</version>
         </dependency>
         <dependency>
             <groupId>commons-httpclient</groupId>
@@ -362,12 +373,30 @@
         <dependency>
             <groupId>xom</groupId>
             <artifactId>xom</artifactId>
-            <version>1.2.5</version>
+            <version>1.1d2</version>
+        </dependency>
+        <dependency>
+        	<groupId>org.slf4j</groupId>
+        	<artifactId>slf4j-log4j12</artifactId>
+        	<version>1.5.6</version>
+        	<optional>false</optional>
         </dependency>
         <dependency>
         	<groupId>edu.ucar</groupId>
         	<artifactId>netcdf</artifactId>
         	<version>4.1</version>
+        	<optional>false</optional>
+        </dependency>
+        <dependency>
+        	<groupId>net.sf.saxon</groupId>
+        	<artifactId>saxon-xpath</artifactId>
+        	<version>8.7</version>
+        	<optional>false</optional>
+        </dependency>
+        <dependency>
+        	<groupId>net.sf.saxon</groupId>
+        	<artifactId>saxon-dom</artifactId>
+        	<version>8.7</version>
         	<optional>false</optional>
         </dependency>
     </dependencies>

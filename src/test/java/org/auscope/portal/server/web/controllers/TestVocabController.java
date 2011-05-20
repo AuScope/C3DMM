@@ -86,8 +86,7 @@ public class TestVocabController {
         this.vocabController = new VocabController(
                 this.httpServiceCaller,
                 responseHandler,
-                this.propertyConfigurer,
-                this.cswService);
+                this.propertyConfigurer);
     }
 
     /**

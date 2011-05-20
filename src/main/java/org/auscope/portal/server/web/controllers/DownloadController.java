@@ -1,26 +1,24 @@
 package org.auscope.portal.server.web.controllers;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
+
+import javax.servlet.http.HttpServletResponse;
+
+import net.sf.json.JSONObject;
+
+import org.apache.commons.httpclient.Header;
+import org.apache.commons.httpclient.HttpClient;
+import org.apache.commons.httpclient.methods.GetMethod;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.auscope.portal.server.web.service.HttpServiceCaller;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.apache.commons.httpclient.methods.GetMethod;
-import org.apache.commons.httpclient.HttpClient;
-import org.apache.commons.httpclient.Header;
-
-import org.auscope.portal.server.web.service.HttpServiceCaller;
-
-import javax.servlet.http.HttpServletResponse;
-
-import java.text.SimpleDateFormat;
-import java.util.zip.ZipOutputStream;
-import java.util.zip.ZipEntry;
-import java.util.Date;
-
-import net.sf.json.JSONObject;
 
 /**
  * User: Mathew Wyatt
@@ -57,21 +55,32 @@ public class DownloadController {
         //create the output stream
         ZipOutputStream zout = new ZipOutputStream(response.getOutputStream());
 
-        logger.info("No. of serviceUrls: " + serviceUrls.length);
+        logger.trace("No. of serviceUrls: " + serviceUrls.length);
 
         for(int i=0; i<serviceUrls.length; i++) {
 
             GetMethod method = new GetMethod(serviceUrls[i]);
             HttpClient client = serviceCaller.getHttpClient();
 
-            logger.info("Calling service: " + serviceUrls[i]);
+            logger.trace("Calling service: " + serviceUrls[i]);
 
-            String responseString 
-               = serviceCaller.getMethodResponseAsString(method, client);
+            //Our request may fail (due to timeout or otherwise)
+            String responseString = null;
+            JSONObject jsonObject = null;
+            try {
+                responseString = serviceCaller.getMethodResponseAsString(method, client);
+                
+                logger.trace("Response: " + responseString);
 
-            logger.info("Response: " + responseString);
-
-            JSONObject jsonObject = JSONObject.fromObject( responseString );
+                jsonObject = JSONObject.fromObject( responseString );
+            } catch (Exception ex) {
+                //Replace a failure exception with a JSONObject representing that exception
+                logger.error(ex, ex);
+                jsonObject = new JSONObject();
+                jsonObject.put("msg", ex.getMessage());
+                jsonObject.put("success", false);
+                responseString = ex.toString();
+            }
 
             //Extract our data (if it exists)
             byte[] gmlBytes = new byte[] {}; //The error response is an empty array
@@ -88,7 +97,7 @@ public class DownloadController {
             	}
             }
 
-            logger.info(gmlBytes.length);
+            logger.trace(gmlBytes.length);
 
             if(jsonObject.get("success").toString().equals("false")) {
             	//The server may have returned an error message, if so, lets include it in the filename
@@ -119,16 +128,20 @@ public class DownloadController {
      * into a zip file and send the response back to the browser.
      * 
      * @param serviceUrls
+     * @param filename
      * @param response
      * @throws Exception
      */
-    @RequestMapping("/downloadWMSAsZip.do")
-    public void downloadWMSAsZip( @RequestParam("serviceUrls") final String[] serviceUrls,
+    @RequestMapping("/downloadDataAsZip.do")
+    public void downloadDataAsZip( @RequestParam("serviceUrls") final String[] serviceUrls,
+    				              @RequestParam("filename") final String filename,
                                   HttpServletResponse response) throws Exception {
 
+    	String filenameStr = filename == null || filename.length() < 0 ? "DataDownload" : filename;
+    	
         //set the content type for zip files
         response.setContentType("application/zip");
-        response.setHeader("Content-Disposition","inline; filename=PNGDownload.zip;");
+        response.setHeader("Content-Disposition","inline; filename=" + filenameStr + ".zip;");
 
         //create the output stream
         ZipOutputStream zout = new ZipOutputStream(response.getOutputStream());

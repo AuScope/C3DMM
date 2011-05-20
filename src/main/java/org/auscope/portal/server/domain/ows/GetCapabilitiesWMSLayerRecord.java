@@ -5,13 +5,15 @@ import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
 
+import org.auscope.portal.csw.CSWGeographicBoundingBox;
 import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 
 /**
  * This class represents WMS Layer node within GetCapabilites WMS response.
  * 
  * @author JarekSanders
- * @version $Id$
+ * @version $Id: GetCapabilitiesWMSLayerRecord.java
  *
  */
 public class GetCapabilitiesWMSLayerRecord {
@@ -20,7 +22,9 @@ public class GetCapabilitiesWMSLayerRecord {
     private String name;
     private String title;
     private String description;
-
+    private CSWGeographicBoundingBox bbox;
+    private String[] childLayerSRS;
+    
     // ----------------------------------------------------------- Constructors
     public GetCapabilitiesWMSLayerRecord(Node node) throws XPathExpressionException {
         XPath xPath = XPathFactory.newInstance().newXPath();
@@ -37,6 +41,32 @@ public class GetCapabilitiesWMSLayerRecord {
         tempNode = (Node)xPath.evaluate(layerAbstractExpression, node, XPathConstants.NODE);
         description = tempNode != null ? tempNode.getTextContent() : "";
         
+        String latLonBoundingBox = "LatLonBoundingBox";
+        tempNode = (Node)xPath.evaluate(latLonBoundingBox, node, XPathConstants.NODE);
+        if (tempNode != null) {
+        	String minx = (String)xPath.evaluate("@minx", tempNode, XPathConstants.STRING);
+        	String maxx = (String)xPath.evaluate("@maxx", tempNode, XPathConstants.STRING);
+        	String miny = (String)xPath.evaluate("@miny", tempNode, XPathConstants.STRING);
+        	String maxy = (String)xPath.evaluate("@maxy", tempNode, XPathConstants.STRING);
+        	
+        	//Attempt to parse our bounding box
+        	try {
+	        	bbox = new CSWGeographicBoundingBox(Double.parseDouble(minx), 
+	        			Double.parseDouble(maxx), 
+	        			Double.parseDouble(miny), 
+	        			Double.parseDouble(maxy));
+        	} catch (Exception ex) { }
+        }
+        
+        String layerSRSExpression = "SRS";
+        NodeList nodes = (NodeList)xPath.evaluate( layerSRSExpression
+                , node
+                , XPathConstants.NODESET );
+		childLayerSRS = new String[nodes.getLength()];
+		for(int i =0; i< nodes.getLength(); i++){
+			Node childSRSNode = nodes.item(i);
+			childLayerSRS[i] = childSRSNode != null ? childSRSNode.getTextContent() : "";
+		}
     }
     
     
@@ -52,6 +82,14 @@ public class GetCapabilitiesWMSLayerRecord {
     
     public String getAbstract() throws XPathExpressionException {
         return description;
+    }
+    
+    public CSWGeographicBoundingBox getBoundingBox() {
+    	return bbox;
+    }
+    
+    public String[] getChildLayerSRS() throws XPathExpressionException {
+        return childLayerSRS;
     }
     
     public String toString() {

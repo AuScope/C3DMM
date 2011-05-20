@@ -1,9 +1,9 @@
 package org.auscope.portal.server.web.view;
 
-import org.springframework.web.servlet.ModelAndView;
-import org.springframework.ui.Model;
-import org.springframework.ui.ModelMap;
 import net.sf.json.JSONArray;
+
+import org.springframework.ui.ModelMap;
+import org.springframework.web.servlet.ModelAndView;
 
 /**
  * A spring ModelAndView for json objects
@@ -21,6 +21,8 @@ public class JSONModelAndView extends ModelAndView {
 
     public JSONModelAndView(JSONArray jsonArray) {
         super(new JSONView(jsonArray), new ModelMap());   
-    }
+    }    
+   
+    
 
 }

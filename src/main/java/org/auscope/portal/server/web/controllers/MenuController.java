@@ -1,9 +1,9 @@
 package org.auscope.portal.server.web.controllers;
 
+import java.awt.Menu;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-
 import java.util.jar.Attributes;
 import java.util.jar.Manifest;
 
@@ -11,9 +11,7 @@ import javax.servlet.http.HttpServletRequest;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-
 import org.auscope.portal.server.util.PortalPropertyPlaceholderConfigurer;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Controller;
@@ -27,70 +25,71 @@ import org.springframework.web.servlet.ModelAndView;
  */
 @Controller
 public class MenuController {
-   
+
    protected final Log logger = LogFactory.getLog(getClass());
 
    @Autowired
    @Qualifier(value = "propertyConfigurer")
    private PortalPropertyPlaceholderConfigurer hostConfigurer;
 
-   /* Commented out, for the time being we are redirecting Home link to AuScope site
-   @RequestMapping("/home.html")
-   public ModelAndView menu() {
-      logger.info("menu controller started!");
-      return new ModelAndView("home");
+
+   @RequestMapping("/genericparser.html")
+   public ModelAndView genericParser() {
+	   String googleKey = hostConfigurer.resolvePlaceholder("HOST.googlemap.key");
+
+	   ModelAndView mav = new ModelAndView("genericparser");
+	      mav.addObject("googleKey", googleKey);
+
+	   return mav;
    }
-   */
-   
+
    @RequestMapping("/gmap.html")
    public ModelAndView gmap() {
-      String googleKey 
+      String googleKey
          = hostConfigurer.resolvePlaceholder("HOST.googlemap.key");
       String vocabServiceUrl
          = hostConfigurer.resolvePlaceholder("HOST.vocabService.url");
-      String nvclWebService
-         = hostConfigurer.resolvePlaceholder("nvcl-web-service.url");
+      String maxFeatureValue
+      	 = hostConfigurer.resolvePlaceholder("HOST.maxFeatures.value");
+
       logger.debug("googleKey: " + googleKey);
       logger.debug("vocabServiceUrl: " + vocabServiceUrl);
-      logger.debug("nvclWebServiceUrl: " + nvclWebService);
-      
+      logger.debug("maxFeatureValue: " + maxFeatureValue);
+
       ModelAndView mav = new ModelAndView("gmap");
       mav.addObject("googleKey", googleKey);
       mav.addObject("vocabServiceUrl", vocabServiceUrl);
-      mav.addObject("nvclWebServiceIP", nvclWebService);
+      mav.addObject("maxFeatureValue", maxFeatureValue);
       return mav;
    }
 
    @RequestMapping("/mosaic_image.html")
    public ModelAndView mosaic_image() {
-      String googleKey 
+      String googleKey
          = hostConfigurer.resolvePlaceholder("HOST.googlemap.key");
       logger.debug(googleKey);
 
       ModelAndView mav = new ModelAndView("mosaic_image");
-      mav.addObject("googleKey",googleKey);      
+      mav.addObject("googleKey",googleKey);
       return mav;
    }
-      
+
    @RequestMapping("/plotted_images.html")
    public ModelAndView plotted_images() {
-      String googleKey 
+      String googleKey
          = hostConfigurer.resolvePlaceholder("HOST.googlemap.key");
       logger.debug(googleKey);
 
       ModelAndView mav = new ModelAndView("plotted_images");
-      mav.addObject("googleKey",googleKey);      
+      mav.addObject("googleKey",googleKey);
       return mav;
    }
-      
-   @RequestMapping("/login.html")
-   public ModelAndView login(HttpServletRequest request) {
-      logger.debug("Shib-Identity-Provider : " + request.getHeader("Shib-Identity-Provider"));
 
-      //return new ModelAndView("login");
-      return new ModelAndView("redirect:/gmap.html");
+   @RequestMapping("/links.html")
+   public ModelAndView links() {
+      return new ModelAndView("links");
    }
-   
+
    @RequestMapping("/about.html")
    public ModelAndView about(HttpServletRequest request) {
 
@@ -111,7 +110,7 @@ public class MenuController {
             mav.addObject("builtBy", atts.getValue("Built-By"));
             mav.addObject("osName", atts.getValue("osName"));
             mav.addObject("osVersion", atts.getValue("osVersion"));
-                        
+
             mav.addObject("serverName", request.getServerName());
             mav.addObject("serverInfo", request.getSession().getServletContext().getServerInfo());
             mav.addObject("serverJavaVersion", System.getProperty("java.version"));
@@ -120,24 +119,11 @@ public class MenuController {
             mav.addObject("serverOsArch", System.getProperty("os.arch"));
             mav.addObject("serverOsName", System.getProperty("os.name"));
             mav.addObject("serverOsVersion", System.getProperty("os.version"));
-         } else {
-            logger.error("Error reading manifest file.");
          }
       } catch (IOException e) {
          /* ignore, since we'll just leave an empty form */
-         e.printStackTrace();
+    	  logger.debug(e.getMessage());
       }
       return mav;
-   }
-   
-   @RequestMapping("/admin.html")
-   public ModelAndView admin() {
-      return new ModelAndView("admin");
-   }
-   
-   
-   @RequestMapping("/access_error.html")
-   public ModelAndView access_error() {
-      return new ModelAndView("access_error");
    }
 }
