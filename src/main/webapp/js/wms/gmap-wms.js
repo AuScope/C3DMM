@@ -23,7 +23,7 @@
  * services that provide epsg 41001 (Mercator).  This provides a reasonable
  * accuracy on overlays at most zoom levels.  It switches between Mercator
  * and Lat/Long at the myMercZoomLevel variable, defaulting to MERC_ZOOM_DEFAULT
- * of 5.  It also performs the calculation from a GPoint to the 
+ * of 5.  It also performs the calculation from updateCSWRecords GPoint to the 
  * appropriate BBOX to pass the WMS.  The overlays could be more accurate, and 
  * if you figure out a way to make them so please contribute information back to
  * http://docs.codehaus.org/display/GEOSDOC/Google+Maps.  There is much
@@ -117,11 +117,7 @@ GWMSTileLayer.prototype.getTileUrl = function(point, zoom) {
                       lowerLeft.lat() + "," +
                       upperRight.lng() + "," +
                       upperRight.lat();
-
-   // MS: save upperLeft lat/lng
-   this.lat = upperLeft.lat();
-   this.lng = upperLeft.lng();
-   
+                  
        srs = "EPSG:4326";
 	}
 

@@ -41,7 +41,7 @@
     <bean id="cswServiceList" class="java.util.ArrayList">
         <constructor-arg>
             <list>
-                <ref bean="cswC3DMM" />
+                <ref bean="cswAuscopeProduction" />
                 <!--<ref bean="cswMDUTest" />!-->
             </list>
         </constructor-arg>
