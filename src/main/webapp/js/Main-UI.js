@@ -20,14 +20,14 @@ Ext.onReady(function() {
 
     //Generate our data stores
     cswRecordStore = new CSWRecordStore('getCSWRecords.do?FilteredLayers=WCS');
-    // var knownLayersStore = new KnownLayerStore('getKnownLayers.do');
-    
+    var knownLayersStore = new KnownLayerStore('getKnownLayers.do');    
     var customLayersStore = new CSWRecordStore('getCustomLayers.do');
+    var dataProductsStore = new CSWRecordStore('./getProducts.do');
     var activeLayersStore = new ActiveLayersStore();
 
     //Called whenever any of the KnownLayer panels click 'Add to Map'
     //defaultVisibility [boolean] - Optional - Set this to override the visibility setting for the new layer
-    /* XXX Not used in C3DMM
+    
     var knownLayerAddHandler = function(knownLayer, defaultVisibility, deferLayerLoad) {
         var activeLayerRec = activeLayersStore.getByKnownLayerRecord(knownLayer);
 
@@ -53,77 +53,35 @@ Ext.onReady(function() {
         //set this record to selected
         activeLayersPanel.getSelectionModel().selectRecords([activeLayerRec.internalRecord], false);
     };
-    */
-    
-    //----------- WMS Layers Panel Configuration
-    var wmsLayersStore = new Ext.data.GroupingStore({
-        proxy: new Ext.data.HttpProxy({url: '/getWMSLayers.do'}),
-        reader: new Ext.data.ArrayReader({}, [
-            {   name: 'title'           },
-            {   name: 'description'     },
-            {   name: 'contactOrg'      },
-            {   name: 'proxyURL'        },
-            {   name: 'serviceType'     },
-            {   name: 'id'              },
-            {   name: 'typeName'        },
-            {   name: 'serviceURLs'     },
-            {   name: 'layerVisible'    },
-            {   name: 'loadingStatus'   },
-            {   name: 'dataSourceImage' },
-            {   name: 'opacity'         }
-        ]),
-//        groupField:'contactOrg',
-        sortInfo: {field:'title', direction:'ASC'}
-    });
-
-    var wmsLayersRowExpander = new Ext.grid.RowExpander({
+       
+    var DataProductsRowExpander = new Ext.grid.RowExpander({
         tpl : new Ext.Template('<p>{description}</p><br>')
     });
-    
-    
-    var dataProductsStore = new Ext.data.Store({
-        proxy: new Ext.data.HttpProxy({url: './getProducts.do'}),
-        reader: new Ext.data.ArrayReader({}, [
-		    {   name: 'title'           },
-		    {   name: 'description'     },
-		    {   name: 'contactOrg'      },
-		    {   name: 'proxyURL'        },
-		    {   name: 'serviceType'     },
-		    {   name: 'id'              },
-		    {   name: 'typeName'        },
-		    {   name: 'serviceURLs'     },
-		    {   name: 'layerVisible'    },
-		    {   name: 'loadingStatus'   },
-		    {   name: 'dataSourceImage' },
-		    {   name: 'opacity'         }
-        ]),
-        sortInfo: {field:'title', direction:'ASC'}
-    });
-
+      
     var dataProductsPanel = new Ext.grid.GridPanel({
         stripeRows       : true,
         autoExpandColumn : 'title',
-        plugins          : [ wmsLayersRowExpander ],
+        plugins          : [ DataProductsRowExpander ],
         viewConfig       : {scrollOffset: 0, forceFit:true},
         title            : 'Available Data Products',
         region           :'north',
         split            : true,
         height           : 200,
         autoScroll       : true,
-        store            : dataProductsStore/*wmsLayersStore*/,
+        store            : dataProductsStore,
         columns: [
-            wmsLayersRowExpander,
+            DataProductsRowExpander,
             {
-                id:'title',
+                id:'serviceName',
                 header: "Title",
                 sortable: true,
-                dataIndex: 'title'
+                dataIndex: 'serviceName'
             },{
-                id:'contactOrg',
+                id:'contactOrganisation',
                 header: "Provider",
                 width: 160,
                 sortable: true,
-                dataIndex: 'contactOrg',
+                dataIndex: 'contactOrganisation',
                 hidden:true
             }
         ],
@@ -133,19 +91,20 @@ Ext.onReady(function() {
             iconCls:'add',
             pressed:true,
             handler: function() {
-                var recordToAdd = dataProductsPanel.getSelectionModel().getSelected();
+                var recordToAdd = new CSWRecord(dataProductsPanel.getSelectionModel().getSelected());
 
                 //Only add if the record isn't already there
-                if (activeLayersStore.findExact("id",recordToAdd.get("id")) < 0) {
+                var activeLayersRecord = activeLayersStore.getByCSWRecord(recordToAdd);
+                if (!activeLayersRecord) {
                     //add to active layers (At the top of the Z-order)
-                    activeLayersStore.insert(0, [recordToAdd]);
+                	activeLayersRecord = activeLayersStore.addCSWRecord(recordToAdd);
 
                     //invoke this layer as being checked
-                    activeLayerCheckHandler(dataProductsPanel.getSelectionModel().getSelected(), true);
+                    activeLayerCheckHandler(activeLayersRecord, true);
                 }
 
                 //set this record to selected
-                activeLayersPanel.getSelectionModel().selectRecords([recordToAdd], false);
+                activeLayersPanel.getSelectionModel().selectRecords([activeLayersRecord.internalRecord], false);
             }
         }]/*,
 
@@ -166,12 +125,6 @@ Ext.onReady(function() {
         }
     });
     
-    
-    
-    
-    
-    /*XXX XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX*/
-
     //Called whenever any of the CSWPanels click 'Add to Map'
     //defaultVisibility [boolean] - Optional - Set this to override the visibility setting for the new layer
     var cswPanelAddHandler = function(cswRecord, defaultVisibility, deferLayerLoad) {
@@ -427,7 +380,6 @@ Ext.onReady(function() {
 
     	//This is our known layer iterator
     	var recordKnown = false;
-    	/* XXX unused in C3DMM
     	knownLayersStore.each(function(rec) {
     		var knownLayer = new KnownLayerRecord(rec);
 
@@ -437,13 +389,10 @@ Ext.onReady(function() {
     			return false;//abort iteration
     		}
     	});
-    	*/
-
     	return recordKnown;
     };
 
     //-----------Known Features Panel Configurations (Groupings of various CSWRecords)
-    /* XXX not used in C3DMM
     var knownLayersPanel = new KnownLayerGridPanel('kft-layers-panel',
 												    		'Featured Layers',
 												    		'Layers or layer groups with custom handlers',
@@ -453,8 +402,6 @@ Ext.onReady(function() {
 												    		visibleKnownLayersFilter,
 												    		showBoundsKnownLayer,
 												    		moveToBoundsKnownLayer);
-
-    */
     
     //----------- Map Layers Panel Configurations (Drawn from CSWRecords that aren't a KnownLayer)
     var mapLayersFilter = function(cswRecord) {
@@ -476,7 +423,11 @@ Ext.onReady(function() {
 									    		visibleCSWRecordFilter,
 									    		showBoundsCSWRecord,
 									    		moveToBoundsCSWRecord);
-
+    
+    //var dataProductsPanel = new DataProductsRecordGridPanel('data-layers-panel',
+    //       												'Available Data Products',
+    //        												'description',
+    //        												dataProductsStore);
 
 
     //------ Custom Layers

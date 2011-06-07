@@ -159,6 +159,10 @@ public class CSWRecord {
     public String getServiceName() {
         return serviceName;
     }
+    
+    public void setServiceName(String serviceName) {
+        this.serviceName = serviceName;
+    }
 
     public CSWOnlineResource[] getOnlineResources() {
         return onlineResources;
@@ -269,9 +273,9 @@ public class CSWRecord {
      * @return true if this record contains the given descriptive keyword, false otherwise.
      */
     public boolean containsKeyword(String str) {
-		for(String keyword : descriptiveKeywords) {
-			if(keyword.equals(str)) {
-				return true;
+		if (descriptiveKeywords != null) {
+			for (String keyword : descriptiveKeywords) {
+				if (keyword.equals(str)) return true;				
 			}
 		}
     	return false;

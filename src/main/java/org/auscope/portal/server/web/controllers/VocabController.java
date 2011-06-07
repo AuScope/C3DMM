@@ -1,6 +1,7 @@
 package org.auscope.portal.server.web.controllers;
 
 import java.io.StringReader;
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -24,7 +25,9 @@ import org.auscope.portal.csw.ICSWMethodMaker;
 import org.auscope.portal.server.util.PortalPropertyPlaceholderConfigurer;
 import org.auscope.portal.server.web.service.CSWService;
 import org.auscope.portal.server.web.service.HttpServiceCaller;
+import org.auscope.portal.server.web.view.CSWRecordResponse;
 import org.auscope.portal.server.web.view.JSONModelAndView;
+import org.auscope.portal.server.web.view.ViewCSWRecordFactory;
 import org.auscope.portal.vocabs.Concept;
 import org.auscope.portal.vocabs.VocabularyServiceResponseHandler;
 
@@ -46,13 +49,14 @@ import org.xml.sax.InputSource;
  * Controller that enables access to vocabulary services.
  */
 @Controller
-public class VocabController {
+public class VocabController extends CSWRecordResponse {
     protected final Log log = LogFactory.getLog(getClass());
     private GetMethod method;
     private HttpServiceCaller httpServiceCaller;
     private VocabularyServiceResponseHandler vocabularyServiceResponseHandler;
     private PortalPropertyPlaceholderConfigurer portalPropertyPlaceholderConfigurer;
     private CSWService cswService;
+    private ViewCSWRecordFactory viewCSWRecordFactory;
     
     /**
      * Construct
@@ -62,12 +66,13 @@ public class VocabController {
     public VocabController(HttpServiceCaller httpServiceCaller,
                            VocabularyServiceResponseHandler vocabularyServiceResponseHandler,
                            PortalPropertyPlaceholderConfigurer portalPropertyPlaceholderConfigurer,
-                           CSWService cswService) {
+                           CSWService cswService, ViewCSWRecordFactory viewCSWRecordFactory) {
 
         this.httpServiceCaller = httpServiceCaller;
         this.vocabularyServiceResponseHandler = vocabularyServiceResponseHandler;        
         this.portalPropertyPlaceholderConfigurer = portalPropertyPlaceholderConfigurer;
         this.cswService = cswService;
+        this.viewCSWRecordFactory = viewCSWRecordFactory;
         
         String vocabServiceUrl = portalPropertyPlaceholderConfigurer.resolvePlaceholder("HOST.vocabService.url");
         log.debug("vocab service URL: " + vocabServiceUrl);
@@ -94,75 +99,16 @@ public class VocabController {
         CSWRecord[] cswRecords = cswService.getWMSRecordsOfOrg("C3DMM");
 
         log.debug("Number of WMS layers retrieved: " + cswRecords.length);
-
-        //the main holder for the items
-        JSONArray dataItems = new JSONArray();
-
-        for(Concept concept : concepts) {
-            JSONArray tableRow = new JSONArray();
-
-            //title
-            tableRow.add(concept.getPreferredLabel());
-
-            //description
-            tableRow.add(concept.getScopeNotes());
-
-            //add the contact organisation
-            /*String org = record.getContactOrganisation();
-
-            //skip if not C3DMM
-            if (org.compareTo("C3DMM") != 0)
-            	continue;
-            */
-        
-        
-            tableRow.add("");
-
-            //wms dont need a proxy url
-            tableRow.add("");
-
-            //add the type: wfs or wms
-            tableRow.add("wms");
-
-            //TODO: add a proper unique id
-            tableRow.add(concept.hashCode());
-
-            //an array for the layer names
-            JSONArray layerNames = new JSONArray();
-
-            //an array for the service URLs
-            JSONArray serviceUrls = new JSONArray();
-
-            //find the URLs and layer names from the CSW service which were tagged with the given product name
-            for(CSWRecord cswRecord : cswRecords) {
-            	if(cswRecord.containsKeyword(concept.getConceptUrn())) {
-            		CSWOnlineResource[] resources = cswRecord.getOnlineResources();           	
-            		for(CSWOnlineResource resource : resources ) {     			
-            			 layerNames.add(resource.getName());
-                         serviceUrls.add(resource.getLinkage());
-            		}
-        		}	
-            }            
-            
-            //the layer names
-            tableRow.add(layerNames);
-
-            //URLs for the services containing this type of product
-            tableRow.add(serviceUrls);
-
-            tableRow.element(true);
-            tableRow.add("<img src='js/external/extjs/resources/images/default/grid/done.gif'>");
-
-            tableRow.add("<a href='http://portal.auscope.org' id='mylink' target='_blank'><img src='img/picture_link.png'></a>");
-
-            tableRow.add("1.0");
-
-            //add to the list
-            dataItems.add(tableRow);
-        }
-
-        return new JSONModelAndView(dataItems);
-       
+        List<CSWRecord> filteredRecords = new ArrayList<CSWRecord>();
+        for (CSWRecord cswRecord : cswRecords) {
+        	for (Concept concept : concepts) {			
+				if (cswRecord.containsKeyword(concept.getConceptUrn())) {					 						     			
+					cswRecord.setServiceName(concept.getPreferredLabel());
+					filteredRecords.add(cswRecord);						
+				}
+			}
+		}
+        return generateJSONResponse(this.viewCSWRecordFactory, filteredRecords.toArray(new CSWRecord[filteredRecords.size()]));  
     }
 
     /**
