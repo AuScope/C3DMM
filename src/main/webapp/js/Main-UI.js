@@ -55,7 +55,7 @@ Ext.onReady(function() {
     };
        
     var DataProductsRowExpander = new Ext.grid.RowExpander({
-        tpl : new Ext.Template('<p>{description}</p><br>')
+        tpl : new Ext.Template('<p>{dataIdentificationAbstract}</p><br>')
     });
       
     var dataProductsPanel = new Ext.grid.GridPanel({

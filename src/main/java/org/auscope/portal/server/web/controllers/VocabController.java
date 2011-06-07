@@ -104,6 +104,7 @@ public class VocabController extends CSWRecordResponse {
         	for (Concept concept : concepts) {			
 				if (cswRecord.containsKeyword(concept.getConceptUrn())) {					 						     			
 					cswRecord.setServiceName(concept.getPreferredLabel());
+					cswRecord.setDataIdentificationAbstract(concept.getScopeNotes());
 					filteredRecords.add(cswRecord);						
 				}
 			}

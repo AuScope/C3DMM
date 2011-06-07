@@ -179,6 +179,10 @@ public class CSWRecord {
     public String getDataIdentificationAbstract() {
         return dataIdentificationAbstract;
     }
+    
+    public void setDataIdentificationAbstract(String dataIdentificationAbstract) {
+        this.dataIdentificationAbstract = dataIdentificationAbstract;
+    }
 
     /**
      * Set the CSWGeographicElement that bounds this record
