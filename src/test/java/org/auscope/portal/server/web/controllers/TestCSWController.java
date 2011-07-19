@@ -9,6 +9,8 @@ import javax.servlet.http.HttpServletResponse;
 import net.sf.json.JSONArray;
 import net.sf.json.JSONObject;
 
+import org.auscope.portal.csw.CSWOnlineResource;
+import org.auscope.portal.csw.CSWOnlineResource.OnlineResourceType;
 import org.auscope.portal.csw.CSWRecord;
 import org.auscope.portal.server.util.PortalPropertyPlaceholderConfigurer;
 import org.auscope.portal.server.web.service.CSWService;
@@ -81,7 +83,7 @@ public class TestCSWController {
         }});
 
     	//Run the method, get our response rendered as a JSONObject
-    	ModelAndView mav = cswController.getCSWRecords();
+    	ModelAndView mav = cswController.getCSWRecords(null);
     	mav.getView().render(mav.getModel(), mockHttpRequest, mockHttpResponse);
     	JSONObject jsonObj = JSONObject.fromObject(actualJSONResponse.toString());
 
@@ -99,6 +101,18 @@ public class TestCSWController {
     }
 
     @Test
+    //Tests new filter implemented for getting Records
+    public void testOGCFilter() throws Exception {
+    	final String[] filteredLayers = new String[]{"ABC","WFS","WWF","WWCS","WCS","WMS","XXX",""}; 
+    	context.checking(new Expectations() {{
+    		oneOf(mockCSWService).updateRecordsInBackground();
+    		oneOf(mockCSWService).getFilteredRecords(new CSWOnlineResource.OnlineResourceType[]{OnlineResourceType.WFS,OnlineResourceType.WCS,OnlineResourceType.WMS});
+        }});
+    	cswController.getCSWRecords(filteredLayers);
+    }
+    
+    
+    @Test
     public void testGetRecordResponse_UpdateError() throws Exception {
     	final StringWriter actualJSONResponse = new StringWriter();
 
@@ -111,7 +125,7 @@ public class TestCSWController {
         }});
 
     	//Run the method, get our response rendered as a JSONObject
-    	ModelAndView mav = cswController.getCSWRecords();
+    	ModelAndView mav = cswController.getCSWRecords(null);
     	mav.getView().render(mav.getModel(), mockHttpRequest, mockHttpResponse);
     	JSONObject jsonObj = JSONObject.fromObject(actualJSONResponse.toString());
 
@@ -145,7 +159,7 @@ public class TestCSWController {
         }});
 
     	//Run the method, get our response rendered as a JSONObject
-    	ModelAndView mav = cswController.getCSWRecords();
+    	ModelAndView mav = cswController.getCSWRecords(null);
     	mav.getView().render(mav.getModel(), mockHttpRequest, mockHttpResponse);
     	JSONObject jsonObj = JSONObject.fromObject(actualJSONResponse.toString());
 

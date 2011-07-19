@@ -1,5 +1,7 @@
 package org.auscope.portal.server.web.controllers;
 
+import java.util.ArrayList;
+
 import javax.servlet.http.HttpServletResponse;
 
 import org.auscope.portal.csw.CSWOnlineResource;
@@ -66,17 +68,16 @@ public class CSWController extends CSWRecordResponse {
 			if(filteredLayers==null || filteredLayers.length==0)			
 				records = this.cswService.getAllRecords();
 			else {
-				CSWOnlineResource.OnlineResourceType[] types 
-					= new CSWOnlineResource.OnlineResourceType[filteredLayers.length];
+				ArrayList <CSWOnlineResource.OnlineResourceType> list = new ArrayList<CSWOnlineResource.OnlineResourceType>();
 				for(int i=0; i<filteredLayers.length; i++) {
 					if("WMS".equals(filteredLayers[i])) 
-						types[i]= OnlineResourceType.WMS;
+						list.add(OnlineResourceType.WMS);
 					else if("WFS".equals(filteredLayers[i]))
-						types[i]= OnlineResourceType.WFS;
+						list.add(OnlineResourceType.WFS);
 					else if("WCS".equals(filteredLayers[i]))
-						types[i]= OnlineResourceType.WCS;				
+						list.add(OnlineResourceType.WCS);				
 				}
-				records = this.cswService.getFilteredRecords(types);
+				records = this.cswService.getFilteredRecords(list.toArray(new CSWOnlineResource.OnlineResourceType[list.size()]));
 			}						
 		} catch (Exception e) {
 			log.error("error getting data records", e);

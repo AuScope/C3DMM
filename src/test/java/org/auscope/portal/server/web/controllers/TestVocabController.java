@@ -11,6 +11,7 @@ import org.apache.commons.httpclient.methods.GetMethod;
 import org.auscope.portal.server.util.PortalPropertyPlaceholderConfigurer;
 import org.auscope.portal.server.web.service.CSWService;
 import org.auscope.portal.server.web.service.HttpServiceCaller;
+import org.auscope.portal.server.web.view.ViewCSWRecordFactory;
 import org.auscope.portal.vocabs.VocabularyServiceResponseHandler;
 import org.jmock.Expectations;
 import org.jmock.Mockery;
@@ -48,6 +49,9 @@ public class TestVocabController {
      */
     private PortalPropertyPlaceholderConfigurer propertyConfigurer = context.mock(PortalPropertyPlaceholderConfigurer.class);
 
+    
+    private ViewCSWRecordFactory viewCSWRecordFactory = context.mock(ViewCSWRecordFactory.class);
+    
     /**
      * Mock http request
      */
@@ -86,7 +90,10 @@ public class TestVocabController {
         this.vocabController = new VocabController(
                 this.httpServiceCaller,
                 responseHandler,
-                this.propertyConfigurer);
+                this.propertyConfigurer,
+                this.cswService,
+                this.viewCSWRecordFactory);                      
+               
     }
 
     /**
